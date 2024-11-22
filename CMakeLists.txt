@@ -24,6 +24,7 @@ target_link_libraries(dependencies INTERFACE MPI::MPI_CXX fpng)
 # target_include_directories(dependencies INTERFACE "${fpng_SOURCE_DIR}")
 
 add_executable(mpi-raytrace)
+target_include_directories(mpi-raytrace PUBLIC include/${CMAKE_PROJECT_NAME})
 target_compile_features(mpi-raytrace PUBLIC cxx_std_23)
 target_link_libraries(mpi-raytrace PUBLIC dependencies)
 
