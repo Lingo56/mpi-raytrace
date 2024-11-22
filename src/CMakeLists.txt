@@ -1,0 +1,1 @@
+target_sources(mpi-raytrace PRIVATE main.cpp)

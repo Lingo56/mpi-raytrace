@@ -1,0 +1,38 @@
+Checks: >
+  *,
+  llvm-header-guard,
+  -abseil-*,
+  -altera-*,
+  -android-*,
+  -fuchsia-*,
+  -google-*,
+  -llvm*,
+  -zircon-*,
+  -modernize-use-trailing-return-type,
+  -readability-else-after-return,
+  -readability-static-accessed-through-instance,
+  -readability-avoid-const-params-in-decls,
+  -readability-isolate-declaration,
+  -readability-braces-around-statements,
+  -hicpp-braces-around-statements,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -misc-non-private-member-variables-in-classes
+
+WarningsAsErrors: ""
+HeaderFilterRegex: ""
+FormatStyle: none
+
+CheckOptions:
+  # Additional readability options
+  - key: readability-identifier-length.IgnoredVariableNames
+    value: "x|y|z"
+  - key: readability-identifier-length.IgnoredParameterNames
+    value: "x|y|z"
+  - key: readability-identifier-length.IgnoredLoopCounterNames
+    value: "x|y|z|i|j|k"
+  - key: cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted
+    value: true
+
+  # Modernization
+  - key: modernize-use-using
+    value: true

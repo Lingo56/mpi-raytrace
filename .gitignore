@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# CMake
+
+/out
+CMakeUserPresets.json
+compile_commands.json
+
+# clangd
+
+/.cache
