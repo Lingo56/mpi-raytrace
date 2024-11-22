@@ -1,23 +1,16 @@
 #ifndef RAY_H
 #define RAY_H
 
-#include "vec3.h"
+#include "vec.h"
 
-class ray {
-public:
-  ray() = default;
+struct Ray {
+  [[nodiscard]] const Vec3 &origin() const { return orig; }
+  [[nodiscard]] const Vec3 &direction() const { return dir; }
 
-  ray(const point3 &origin, const vec3 &direction)
-      : orig(origin), dir(direction) {}
+  [[nodiscard]] Vec3 at(double time) const { return orig + time * dir; }
 
-  [[nodiscard]] const point3 &origin() const { return orig; }
-  [[nodiscard]] const vec3 &direction() const { return dir; }
-
-  [[nodiscard]] point3 at(double t) const { return orig + t * dir; }
-
-private:
-  point3 orig;
-  vec3 dir;
+  Vec3 orig;
+  Vec3 dir;
 };
 
 #endif

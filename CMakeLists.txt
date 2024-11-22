@@ -6,21 +6,36 @@ find_package(MPI REQUIRED CXX)
 
 include(cmake/CPM.cmake)
 
-# CPMAddPackage(
-#   NAME fpng
-#   GITHUB_REPOSITORY richgel999/fpng
-#   GIT_TAG 925796543b9d26b8edfcdcecd94c1dac280f29fc
-#   OPTIONS
-#     "SSE TRUE"
-# )
-# if(NOT fpng_ADDED)
-#   message(FATAL_ERROR "fpng not added")
-# endif()
+set(CMAKE_PROJECT_CLAPACK_INCLUDE_BEFORE ${CMAKE_CURRENT_LIST_DIR}/cmake/FixCLAPACK.cmake)
+CPMAddPackage(
+  NAME LAPACK
+  VERSION 3.2.1
+  URL http://www.netlib.org/clapack/clapack-3.2.1-CMAKE.tgz
+)
+
+if(NOT LAPACK_ADDED)
+  message(FATAL_ERROR "LAPACK not added")
+else()
+  target_include_directories(f2c INTERFACE "${LAPACK_SOURCE_DIR}/INCLUDE")
+  target_include_directories(lapack INTERFACE "${LAPACK_SOURCE_DIR}/INCLUDE")
+endif()
+
+CPMAddPackage(
+  NAME blaze
+  GIT_REPOSITORY https://bitbucket.org/blaze-lib/blaze.git
+  VERSION 3.8.2
+  OPTIONS
+    "BLAZE_SMP_THREADS C++11"
+    "BLAZE_BLAS_IS_64BIT 1"
+)
+if(NOT blaze_ADDED)
+  message(FATAL_ERROR "blaze not added")
+endif()
 
 add_subdirectory(vendor/fpng)
 
 add_library(dependencies INTERFACE)
-target_link_libraries(dependencies INTERFACE MPI::MPI_CXX fpng)
+target_link_libraries(dependencies INTERFACE MPI::MPI_CXX fpng blaze)
 # target_include_directories(dependencies INTERFACE "${fpng_SOURCE_DIR}")
 
 add_executable(mpi-raytrace)
