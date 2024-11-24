@@ -5,25 +5,34 @@
 #include "blaze/math/Vector.h"
 #include "blaze/math/expressions/DVecMapExpr.h"
 #include "blaze/math/expressions/DVecNormExpr.h"
+#include "blaze/math/expressions/DVecScalarMultExpr.h"
 #include "color.h"
 #include "ray.h"
 #include "vec.h"
 #include <fpng.h>
 
-bool hit_sphere(const Vec3 &center, double radius, const Ray &ray) {
+double hit_sphere(const Vec3 &center, double radius, const Ray &ray) {
   Vec3 oc = center - ray.origin();
   auto a = dot(ray.direction(), ray.direction());
   auto b = -2.0 * dot(ray.direction(), oc);
   auto c = dot(oc, oc) - radius * radius;
   auto discriminant = b * b - 4 * a * c;
-  return (discriminant >= 0);
+
+  if (discriminant < 0) {
+    return -1.0;
+  } else {
+    return (-b - std::sqrt(discriminant)) / (2.0 * a);
+  }
 }
 
 Color ray_color(const Ray &ray) {
-  if (hit_sphere(Vec3{0, 0, -1}, 0.5, ray))
-    return Color{1, 0, 0};
+  auto t = hit_sphere(Vec3{0, 0, -1}, 0.5, ray);
+  if (t > 0.0) {
+    Vec3 N = normalize(ray.at(t) - Vec3{0, 0, -1});
+    return 0.5 * Color{N.x() + 1, N.y() + 1, N.z() + 1};
+  }
 
-  Vec3 unit_direction = ray.direction() / length(ray.direction());
+  Vec3 unit_direction = normalize(ray.direction());
   auto a = 0.5 * (unit_direction.y() + 1.0);
   return (1.0 - a) * Color{1.0, 1.0, 1.0} + a * Color{0.5, 0.7, 1.0};
 }
