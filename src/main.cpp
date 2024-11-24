@@ -41,7 +41,7 @@ int main() {
   auto viewport_h = 2.0; // 2 is arbitrary, can be any number
 
   Vec2<double> viewport_dims{
-      viewport_h, viewport_h * ((double)img_dims[0] / (double)img_dims[1])
+      viewport_h * (double(img_dims[0]) / img_dims[1]), viewport_h
   };
   Vec3 camera_center{0, 0, 0};
 
