@@ -11,30 +11,36 @@
 #include "vec.h"
 #include <fpng.h>
 
-double hit_sphere(const Vec3 &center, double radius, const Ray &ray) {
-  Vec3 oc = center - ray.origin();
-  auto a = dot(ray.direction(), ray.direction());
-  auto b = -2.0 * dot(ray.direction(), oc);
-  auto c = dot(oc, oc) - radius * radius;
-  auto discriminant = b * b - 4 * a * c;
+double
+hit_sphere(const Point3 &sphere_center, double sphere_radius, const Ray &ray) {
+  Vec3 ray_to_center = sphere_center - ray.origin();
+
+  auto a_normal_ray_direction = sqrNorm(ray.direction());
+  auto b_ray_to_center = dot(ray.direction(), ray_to_center);
+  auto c_sphere_offset = sqrNorm(ray_to_center) - sphere_radius * sphere_radius;
+  auto discriminant = (b_ray_to_center * b_ray_to_center) -
+                      (a_normal_ray_direction * c_sphere_offset);
 
   if (discriminant < 0) {
     return -1.0;
   } else {
-    return (-b - std::sqrt(discriminant)) / (2.0 * a);
+    return (b_ray_to_center - std::sqrt(discriminant)) / a_normal_ray_direction;
   }
 }
 
 Color ray_color(const Ray &ray) {
-  auto t = hit_sphere(Vec3{0, 0, -1}, 0.5, ray);
-  if (t > 0.0) {
-    Vec3 N = normalize(ray.at(t) - Vec3{0, 0, -1});
-    return 0.5 * Color{N.x() + 1, N.y() + 1, N.z() + 1};
+  // Ray Hits Sphere
+  auto intersection_distance = hit_sphere(Point3{0, 0, -1}, 0.5, ray);
+  if (intersection_distance > 0.0) {
+    Vec3 normal = normalize(ray.at(intersection_distance) - Vec3{0, 0, -1});
+    return 0.5 * Color{normal.x() + 1, normal.y() + 1, normal.z() + 1};
   }
 
+  // Ray Hits Background
   Vec3 unit_direction = normalize(ray.direction());
-  auto a = 0.5 * (unit_direction.y() + 1.0);
-  return (1.0 - a) * Color{1.0, 1.0, 1.0} + a * Color{0.5, 0.7, 1.0};
+  auto blend_factor = 0.5 * (unit_direction.y() + 1.0);
+  return (1.0 - blend_factor) * Color{1.0, 1.0, 1.0} +
+         blend_factor * Color{0.5, 0.7, 1.0};
 }
 
 int main() {

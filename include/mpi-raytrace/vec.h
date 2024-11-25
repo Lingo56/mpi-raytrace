@@ -8,7 +8,6 @@
 #include <concepts>
 #include <initializer_list>
 
-// using Vec3 = blaze::StaticVector<double, 3UL>;
 struct Vec3 : public blaze::StaticVector<double, 3UL> {
   using Base = blaze::StaticVector<double, 3UL>;
 
@@ -37,5 +36,8 @@ struct Vec3 : public blaze::StaticVector<double, 3UL> {
 };
 
 template <typename T> using Vec2 = blaze::StaticVector<T, 2UL>;
+
+// For readability: So points look different than vectors
+using Point3 = Vec3;
 
 #endif
