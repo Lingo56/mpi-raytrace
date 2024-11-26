@@ -11,9 +11,11 @@
 struct Vec3 : public blaze::StaticVector<double, 3UL> {
   using Base = blaze::StaticVector<double, 3UL>;
 
+  constexpr Vec3() noexcept : Base{0.0, 0.0, 0.0} {}
+
   template <typename U>
     requires std::constructible_from<Base, U>
-  constexpr Vec3(U &&arg) noexcept : Base(std::forward<U>(arg)) {}
+  constexpr explicit Vec3(U &&arg) noexcept : Base(std::forward<U>(arg)) {}
 
   // template <typename... Args>
   // explicit constexpr Vec3(Args &&...args) noexcept
