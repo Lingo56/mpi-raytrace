@@ -18,7 +18,7 @@ public:
   bool
   hit(const Ray &ray, double ray_tmin, double ray_tmax,
       HitRecord &rec) const override {
-    Vec3 ray_to_center = sphere_center - ray.origin();
+    Vec3 ray_to_center = Vec3(sphere_center - ray.origin());
 
     auto a_normal_ray_direction = sqrNorm(ray.direction());
     auto b_ray_to_center = dot(ray.direction(), ray_to_center);
@@ -40,7 +40,7 @@ public:
 
     rec.t = root;
     rec.p = ray.at(rec.t);
-    Vec3 outward_normal = (rec.p - sphere_center) / radius;
+    Vec3 outward_normal = Vec3((rec.p - sphere_center) / radius);
     rec.set_face_normal(ray, outward_normal);
 
     return true;

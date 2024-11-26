@@ -18,7 +18,7 @@ public:
     // NOTE: the parameter `outward_normal` is assumed to have unit length.
 
     front_face = dot(ray.direction(), outward_normal) < 0;
-    normal = front_face ? outward_normal : -outward_normal;
+    normal = front_face ? outward_normal : Vec3(-outward_normal);
   }
 };
 

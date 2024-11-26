@@ -13,7 +13,7 @@
 
 double
 hit_sphere(const Point3 &sphere_center, double sphere_radius, const Ray &ray) {
-  Vec3 ray_to_center = sphere_center - ray.origin();
+  Vec3 ray_to_center = Vec3(sphere_center - ray.origin());
 
   auto a_normal_ray_direction = sqrNorm(ray.direction());
   auto b_ray_to_center = dot(ray.direction(), ray_to_center);
@@ -32,15 +32,18 @@ Color ray_color(const Ray &ray) {
   // Ray Hits Sphere
   auto intersection_distance = hit_sphere(Point3{0, 0, -1}, 0.5, ray);
   if (intersection_distance > 0.0) {
-    Vec3 normal = normalize(ray.at(intersection_distance) - Vec3{0, 0, -1});
-    return 0.5 * Color{normal.x() + 1, normal.y() + 1, normal.z() + 1};
+    Vec3 normal =
+        Vec3(normalize(ray.at(intersection_distance)) - Vec3{0, 0, -1});
+    return Color(0.5 * Color{normal.x() + 1, normal.y() + 1, normal.z() + 1});
   }
 
   // Ray Hits Background
-  Vec3 unit_direction = normalize(ray.direction());
+  Vec3 unit_direction = Vec3(normalize(ray.direction()));
   auto blend_factor = 0.5 * (unit_direction.y() + 1.0);
-  return (1.0 - blend_factor) * Color{1.0, 1.0, 1.0} +
-         blend_factor * Color{0.5, 0.7, 1.0};
+  return Color(
+      (1.0 - blend_factor) * Color{1.0, 1.0, 1.0} +
+      blend_factor * Color{0.5, 0.7, 1.0}
+  );
 }
 
 int main() {
@@ -90,7 +93,7 @@ int main() {
                           ((double)current_width * pixel_delta_u) +
                           ((double)current_height * pixel_delta_v);
       auto ray_direction = pixel_center - camera_center;
-      Ray ray(camera_center, ray_direction);
+      Ray ray(camera_center, Vec3(ray_direction));
 
       Color pixel_color = ray_color(ray);
       write_color(std::cout, pixel_color);
