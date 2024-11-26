@@ -1,6 +1,8 @@
 #ifndef VEC_H
 #define VEC_H
 
+#include "blaze/math/TransposeFlag.h"
+#include "blaze/math/expressions/Vector.h"
 #include <cmath>
 
 #include <blaze/Blaze.h>

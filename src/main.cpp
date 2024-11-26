@@ -2,48 +2,26 @@
 #include <cstddef>
 #include <iostream>
 
-#include "blaze/math/Vector.h"
 #include "blaze/math/expressions/DVecMapExpr.h"
-#include "blaze/math/expressions/DVecNormExpr.h"
 #include "blaze/math/expressions/DVecScalarMultExpr.h"
 #include "color.h"
+#include "hittable.h"
+#include "hittable_list.h"
 #include "ray.h"
+#include "sphere.h"
+#include "utility.h"
 #include "vec.h"
 #include <fpng.h>
 
-double
-hit_sphere(const Point3 &sphere_center, double sphere_radius, const Ray &ray) {
-  Vec3 ray_to_center = Vec3(sphere_center - ray.origin());
-
-  auto a_normal_ray_direction = sqrNorm(ray.direction());
-  auto b_ray_to_center = dot(ray.direction(), ray_to_center);
-  auto c_sphere_offset = sqrNorm(ray_to_center) - sphere_radius * sphere_radius;
-  auto discriminant = (b_ray_to_center * b_ray_to_center) -
-                      (a_normal_ray_direction * c_sphere_offset);
-
-  if (discriminant < 0) {
-    return -1.0;
-  } else {
-    return (b_ray_to_center - std::sqrt(discriminant)) / a_normal_ray_direction;
-  }
-}
-
-Color ray_color(const Ray &ray) {
-  // Ray Hits Sphere
-  auto intersection_distance = hit_sphere(Point3{0, 0, -1}, 0.5, ray);
-  if (intersection_distance > 0.0) {
-    Vec3 normal =
-        Vec3(normalize(ray.at(intersection_distance)) - Vec3{0, 0, -1});
-    return Color(0.5 * Color{normal.x() + 1, normal.y() + 1, normal.z() + 1});
+Color ray_color(const Ray &ray, const Hittable &world) {
+  HitRecord rec;
+  if (world.hit(ray, 0, infinity, rec)) {
+    return Color(0.5 * (rec.normal + Color{1, 1, 1}));
   }
 
-  // Ray Hits Background
   Vec3 unit_direction = Vec3(normalize(ray.direction()));
-  auto blend_factor = 0.5 * (unit_direction.y() + 1.0);
-  return Color(
-      (1.0 - blend_factor) * Color{1.0, 1.0, 1.0} +
-      blend_factor * Color{0.5, 0.7, 1.0}
-  );
+  auto a = 0.5 * (unit_direction.y() + 1.0);
+  return Color((1.0 - a) * Color{1.0, 1.0, 1.0} + a * Color{0.5, 0.7, 1.0});
 }
 
 int main() {
@@ -52,6 +30,13 @@ int main() {
 
   auto aspect_ratio = 16.0 / 9.0;
   auto img_dims = max(Vec2<size_t>{400, (size_t)(400 / aspect_ratio)}, 1U);
+
+  // -- World --
+
+  HittableList world;
+
+  world.add(make_shared<Sphere>(Point3{0, 0, -1}, 0.5));
+  world.add(make_shared<Sphere>(Point3{0, -100.5, -1}, 100));
 
   // -- Camera --
 
@@ -95,7 +80,7 @@ int main() {
       auto ray_direction = pixel_center - camera_center;
       Ray ray(camera_center, Vec3(ray_direction));
 
-      Color pixel_color = ray_color(ray);
+      Color pixel_color = ray_color(ray, world);
       write_color(std::cout, pixel_color);
     }
   }

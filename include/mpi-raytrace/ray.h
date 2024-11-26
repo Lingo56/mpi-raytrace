@@ -7,7 +7,7 @@ struct Ray {
   [[nodiscard]] const Vec3 &origin() const { return orig; }
   [[nodiscard]] const Vec3 &direction() const { return dir; }
 
-  [[nodiscard]] Vec3 at(double time) const { return orig + time * dir; }
+  [[nodiscard]] Vec3 at(double time) const { return Vec3(orig + time * dir); }
 
   Vec3 orig;
   Vec3 dir;
