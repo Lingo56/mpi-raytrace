@@ -40,7 +40,8 @@ public:
 
     rec.t = root;
     rec.p = ray.at(rec.t);
-    rec.normal = (rec.p - sphere_center) / radius;
+    Vec3 outward_normal = (rec.p - sphere_center) / radius;
+    rec.set_face_normal(ray, outward_normal);
 
     return true;
   }
