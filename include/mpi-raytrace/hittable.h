@@ -2,6 +2,7 @@
 #define HITTABLE_H
 
 #include "blaze/math/Vector.h"
+#include "interval.h"
 #include "ray.h"
 #include "vec.h"
 
@@ -35,9 +36,7 @@ public:
   Hittable &operator=(Hittable &&) = default;
 
   // Only counts rays between tmin and tmax
-  virtual bool
-  hit(const Ray &ray, double ray_tmin, double ray_tmax,
-      HitRecord &rec) const = 0;
+  virtual bool hit(const Ray &ray, Interval ray_t, HitRecord &rec) const = 0;
 };
 
 #endif

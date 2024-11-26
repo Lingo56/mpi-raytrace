@@ -15,9 +15,7 @@ public:
   Sphere(Point3 center, double radius)
       : sphere_center(std::move(center)), radius(std::fmax(0, radius)) {}
 
-  bool
-  hit(const Ray &ray, double ray_tmin, double ray_tmax,
-      HitRecord &rec) const override {
+  bool hit(const Ray &ray, Interval ray_t, HitRecord &rec) const override {
     Vec3 ray_to_center = Vec3(sphere_center - ray.origin());
 
     auto a_normal_ray_direction = sqrNorm(ray.direction());
@@ -32,9 +30,9 @@ public:
 
     // Find the nearest root that lies in the acceptable range.
     auto root = (b_ray_to_center - sqrtd) / a_normal_ray_direction;
-    if (root <= ray_tmin || ray_tmax <= root) {
+    if (!ray_t.surrounds(root)) {
       root = (b_ray_to_center + sqrtd) / a_normal_ray_direction;
-      if (root <= ray_tmin || ray_tmax <= root)
+      if (!ray_t.surrounds(root))
         return false;
     }
 

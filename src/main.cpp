@@ -7,6 +7,7 @@
 #include "color.h"
 #include "hittable.h"
 #include "hittable_list.h"
+#include "interval.h"
 #include "ray.h"
 #include "sphere.h"
 #include "utility.h"
@@ -15,7 +16,7 @@
 
 Color ray_color(const Ray &ray, const Hittable &world) {
   HitRecord rec;
-  if (world.hit(ray, 0, infinity, rec)) {
+  if (world.hit(ray, Interval(0, infinity), rec)) {
     return Color(0.5 * (rec.normal + Color{1, 1, 1}));
   }
 
