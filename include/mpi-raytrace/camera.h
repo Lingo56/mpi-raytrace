@@ -121,7 +121,7 @@ private:
 
     if (world.hit(ray, Interval(0, infinity), rec)) {
       Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
-      return Color(0.5 * ray_color(Ray(rec.p, direction), world));
+      return Color(0.7 * ray_color(Ray(rec.p, direction), world));
     }
 
     Vec3 unit_direction = Vec3(normalize(ray.direction()));

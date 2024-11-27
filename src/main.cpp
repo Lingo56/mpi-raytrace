@@ -9,7 +9,8 @@
 
 constexpr int image_width = 1280;
 constexpr int image_height = 720;
-constexpr int antialiasing_samples = 8; // 1-8x for debug, 100x for final render
+constexpr int antialiasing_samples =
+    100; // 1-8x for debug, 100x-500x for final render
 
 int main() {
   // -- World --
