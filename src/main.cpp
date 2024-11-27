@@ -20,8 +20,25 @@ int main() {
 
   HittableList world;
 
-  world.add(make_shared<Sphere>(Point3{0, 0, -1}, 0.5));
-  world.add(make_shared<Sphere>(Point3{0, -100.5, -1}, 100));
+  // Add spheres for "H"
+  for (double i = -2; i <= 2; i++) {
+    // Left vertical line
+    world.add(make_shared<Sphere>(Point3{-2, i, -4}, 0.5));
+    // Right vertical line
+    world.add(make_shared<Sphere>(Point3{-0, i, -4}, 0.5));
+  }
+  for (double i = -1; i <= -0; i++) {
+    // Horizontal connector
+    world.add(make_shared<Sphere>(Point3{i, 0, -4}, 0.5));
+  }
+
+  // Add spheres for "I"
+  for (double i = -2; i <= 2; i++) {
+    // Vertical line
+    world.add(make_shared<Sphere>(Point3{2, i, -4}, 0.5));
+  }
+
+  world.add(make_shared<Sphere>(Point3{0, -103, -1}, 100));
 
   camera cam(1280, 720);
 
