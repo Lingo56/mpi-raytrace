@@ -1,19 +1,15 @@
 #include <cmath>
-#include <cstddef>
-#include <iostream>
 
-#include "blaze/math/expressions/DVecMapExpr.h"
-#include "blaze/math/expressions/DVecScalarMultExpr.h"
 #include "camera.h"
-#include "color.h"
-#include "hittable.h"
 #include "hittable_list.h"
-#include "interval.h"
-#include "ray.h"
 #include "sphere.h"
 #include "utility.h"
 #include "vec.h"
 #include <fpng.h>
+
+constexpr int image_width = 1280;
+constexpr int image_height = 720;
+constexpr int antialiasing_samples = 8; // 2-8x for debug, 100x for final render
 
 int main() {
   // -- World --
@@ -40,7 +36,7 @@ int main() {
 
   world.add(make_shared<Sphere>(Point3{0, -103, -1}, 100));
 
-  camera cam(1280, 720);
+  camera cam(image_width, image_height, antialiasing_samples);
 
   cam.render(world);
 }

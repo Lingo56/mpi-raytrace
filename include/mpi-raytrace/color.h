@@ -1,6 +1,7 @@
 #ifndef COLOR_H
 #define COLOR_H
 
+#include "interval.h"
 #include "vec.h"
 
 #include <iostream>
@@ -17,7 +18,12 @@ inline void write_color(std::ostream &out, const Color &pixel_color) {
   // int gbyte = int(255.999 * g);
   // int bbyte = int(255.999 * b);
 
-  auto rgb = pixel_color * 255.999;
+  static const Interval intensity(0.000, 0.999);
+  auto rgb = Color{
+      256 * intensity.clamp(pixel_color[0]),
+      256 * intensity.clamp(pixel_color[1]),
+      256 * intensity.clamp(pixel_color[2])
+  };
 
   // Write out the pixel color components.
   out << rgb[0] << ' ' << rgb[1] << ' ' << rgb[2] << '\n';
