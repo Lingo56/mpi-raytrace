@@ -118,8 +118,10 @@ private:
 
   static Color ray_color(const Ray &ray, const Hittable &world) {
     HitRecord rec;
+
     if (world.hit(ray, Interval(0, infinity), rec)) {
-      return Color(0.5 * (rec.normal + Color{1, 1, 1}));
+      Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
+      return Color(0.5 * ray_color(Ray(rec.p, direction), world));
     }
 
     Vec3 unit_direction = Vec3(normalize(ray.direction()));

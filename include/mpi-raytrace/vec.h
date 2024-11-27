@@ -1,8 +1,9 @@
 #ifndef VEC_H
 #define VEC_H
 
-#include "blaze/math/TransposeFlag.h"
-#include "blaze/math/expressions/Vector.h"
+#include "blaze/math/Vector.h"
+#include "blaze/math/expressions/DVecNormExpr.h"
+#include "utility.h"
 #include <cmath>
 
 #include <blaze/Blaze.h>
@@ -19,11 +20,47 @@ struct Vec3 : public blaze::StaticVector<double, 3UL> {
     requires std::constructible_from<Base, U>
   constexpr explicit Vec3(U &&arg) noexcept : Base(std::forward<U>(arg)) {}
 
-  // template <typename... Args>
-  // explicit constexpr Vec3(Args &&...args) noexcept
-  //     : Base({std::forward<Args>(args)...}) {}
-
   constexpr Vec3(std::initializer_list<double> args) noexcept : Base(args) {}
+
+  static Vec3 random() {
+    return Vec3{random_double(), random_double(), random_double()};
+  }
+
+  static Vec3 random(double min, double max) {
+    return Vec3{
+        random_double(min, max),
+        random_double(min, max),
+        random_double(min, max)
+    };
+  }
+
+  static Vec3 random_unit_vector() {
+    while (true) {
+      // Generate a random vector in [-1, 1]
+      Vec3 random_vector{
+          random_double(-1.0, 1.0),
+          random_double(-1.0, 1.0),
+          random_double(-1.0, 1.0)
+      };
+
+      // Calculate squared length
+      double len_sqr = sqrNorm(random_vector);
+
+      // Check if the point lies inside the unit sphere
+      if (len_sqr <= 1.0) {
+        if (1e-160 < len_sqr && len_sqr <= 1)
+          return Vec3(random_vector / std::sqrt(len_sqr));
+      }
+    }
+  }
+
+  static Vec3 random_on_hemisphere(const Vec3 &normal) {
+    Vec3 on_unit_sphere = random_unit_vector();
+    if (dot(on_unit_sphere, normal) > 0.0) // In same hemisphere as the normal
+      return on_unit_sphere;
+    else
+      return Vec3(-on_unit_sphere);
+  }
 
   [[nodiscard]]
   constexpr double &x() noexcept {
