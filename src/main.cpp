@@ -9,8 +9,9 @@
 
 constexpr int image_width = 1280;
 constexpr int image_height = 720;
-constexpr int antialiasing_samples =
-    100; // 1-8x for debug, 100x-500x for final render
+constexpr int antialiasing = 20; // 1-8x for debug, 100x-500x for final render
+constexpr int max_bounces = 10;  // Max times rays can bounce. Default: 10
+                                 // Lower = faster but less accurate
 
 int main() {
   // -- World --
@@ -37,7 +38,7 @@ int main() {
 
   world.add(make_shared<Sphere>(Point3{0, -103, -1}, 100));
 
-  camera cam(image_width, image_height, antialiasing_samples);
+  camera cam(image_width, image_height, antialiasing, max_bounces);
 
   cam.render(world);
 }

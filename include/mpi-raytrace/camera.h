@@ -16,9 +16,12 @@
 
 class camera {
 public:
-  camera(double image_width, double image_height, int samples_per_pixel)
+  camera(
+      double image_width, double image_height, int samples_per_pixel,
+      int max_bounces
+  )
       : aspect_ratio(image_width / image_height),
-        samples_per_pixel(samples_per_pixel) {
+        samples_per_pixel(samples_per_pixel), max_bounces(max_bounces) {
     img_dims = max(
         Vec2<size_t>{
             static_cast<unsigned long>(image_height),
@@ -45,7 +48,7 @@ public:
         Color pixel_color{0, 0, 0};
         for (int sample = 0; sample < samples_per_pixel; sample++) {
           Ray ray = get_ray(current_width, current_height);
-          pixel_color += ray_color(ray, world);
+          pixel_color += ray_color(ray, max_bounces, world);
         }
 
         write_color(std::cout, Color(pixel_color * pixel_samples_scale));
@@ -60,10 +63,12 @@ private:
   Vec2<size_t> img_dims;        // Rendered image dimensions
   int samples_per_pixel;        // Anti-aliasing sample count for each pixel
   double pixel_samples_scale{}; // Color scale factor for a sum of pixel samples
-  Point3 camera_center;         // Camera center
-  Point3 pixel00_loc;           // Location of pixel 0, 0
-  Vec3 pixel_delta_u;           // Offset to pixel to the right
-  Vec3 pixel_delta_v;           // Offset to pixel below
+  int max_bounces;              // The max times rays can bounce in the scene
+
+  Point3 camera_center; // Camera center
+  Point3 pixel00_loc;   // Location of pixel 0, 0
+  Vec3 pixel_delta_u;   // Offset to pixel to the right
+  Vec3 pixel_delta_v;   // Offset to pixel below
 
   void initialize() {
     auto focal_length = 1.0;
@@ -116,12 +121,15 @@ private:
     return Vec3{random_double() - 0.5, random_double() - 0.5, 0};
   }
 
-  static Color ray_color(const Ray &ray, const Hittable &world) {
+  static Color ray_color(const Ray &ray, int depth, const Hittable &world) {
+    if (depth <= 0)
+      return Color{0, 0, 0};
+
     HitRecord rec;
 
     if (world.hit(ray, Interval(0, infinity), rec)) {
       Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
-      return Color(0.7 * ray_color(Ray(rec.p, direction), world));
+      return Color(0.7 * ray_color(Ray(rec.p, direction), depth - 1, world));
     }
 
     Vec3 unit_direction = Vec3(normalize(ray.direction()));
