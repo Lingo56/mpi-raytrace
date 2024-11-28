@@ -1,3 +1,6 @@
+// Source for core logic:
+// https://raytracing.github.io/books/RayTracingInOneWeekend.html
+
 #include <cmath>
 
 #include "camera.h"
@@ -9,8 +12,8 @@
 
 constexpr int image_width = 1280;
 constexpr int image_height = 720;
-constexpr int antialiasing = 20; // 1-8x for debug, 100x-500x for final render
-constexpr int max_bounces = 10;  // Max times rays can bounce. Default: 10
+constexpr int antialiasing = 10; // 1-8x for debug, 100x-500x for final render
+constexpr int max_bounces = 6;   // Max times rays can bounce. Default: 10
                                  // Lower = faster but less accurate
 
 int main() {
@@ -36,7 +39,7 @@ int main() {
     world.add(make_shared<Sphere>(Point3{2, i, -4}, 0.5));
   }
 
-  world.add(make_shared<Sphere>(Point3{0, -103, -1}, 100));
+  world.add(make_shared<Sphere>(Point3{0, -102.5, -1}, 100));
 
   camera cam(image_width, image_height, antialiasing, max_bounces);
 

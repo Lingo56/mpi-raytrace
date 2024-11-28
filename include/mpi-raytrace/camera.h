@@ -127,8 +127,9 @@ private:
 
     HitRecord rec;
 
-    if (world.hit(ray, Interval(0, infinity), rec)) {
-      Vec3 direction = Vec3::random_on_hemisphere(rec.normal);
+    if (world.hit(ray, Interval(0.001, infinity), rec)) {
+      Vec3 direction = Vec3(rec.normal + Vec3::random_unit_vector());
+
       return Color(0.7 * ray_color(Ray(rec.p, direction), depth - 1, world));
     }
 
