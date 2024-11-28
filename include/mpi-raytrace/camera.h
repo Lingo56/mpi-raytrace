@@ -3,16 +3,20 @@
 
 #include "blaze/math/expressions/DVecMapExpr.h"
 #include "blaze/math/expressions/DVecScalarMultExpr.h"
-#include "blaze/math/expressions/Vector.h"
 #include "color.h"
 #include "hittable.h"
 #include "interval.h"
 #include "ray.h"
 #include "utility.h"
 #include "vec.h"
+#include <atomic>
 #include <cstddef>
 #include <iostream>
 #include <ostream>
+#include <string>
+#include <sys/types.h>
+#include <thread>
+#include <vector>
 
 class camera {
 public:
@@ -21,7 +25,7 @@ public:
       int max_bounces
   )
       : aspect_ratio(image_width / image_height),
-        samples_per_pixel(samples_per_pixel), max_bounces(max_bounces) {
+        rays_per_pixel(samples_per_pixel), max_bounces(max_bounces) {
     img_dims = max(
         Vec2<size_t>{
             static_cast<unsigned long>(image_height),
@@ -33,25 +37,63 @@ public:
     initialize();
   }
 
-  void render(const Hittable &world) { // -- Render --
-
-    std::cout << "P3\n" << img_dims[0] << ' ' << img_dims[1] << "\n255\n";
-
-    for (int current_height = 0; current_height < (int)img_dims[1];
-         current_height++) {
-      std::clog << "\rScanlines remaining: " << (img_dims[1] - current_height)
-                << ' ' << std::flush;
-
-      for (int current_width = 0; current_width < (int)img_dims[0];
-           current_width++) {
-
+  void render_chunk(
+      const Hittable &world, size_t start_row, size_t end_row, size_t width,
+      std::vector<std::vector<Color>> &image
+  ) {
+    for (size_t current_height = start_row; current_height < end_row;
+         ++current_height) {
+      for (size_t current_width = 0; current_width < width; ++current_width) {
         Color pixel_color{0, 0, 0};
-        for (int sample = 0; sample < samples_per_pixel; sample++) {
+        for (size_t sample = 0; sample < rays_per_pixel; ++sample) {
           Ray ray = get_ray(current_width, current_height);
           pixel_color += ray_color(ray, max_bounces, world);
         }
+        // Store the result
+        image[current_height][current_width] =
+            Color(pixel_color * pixel_samples_scale);
+      }
 
-        write_color(std::cout, Color(pixel_color * pixel_samples_scale));
+      // Update progress after finishing a row
+      ++rows_completed;
+      int progress =
+          (static_cast<unsigned long>(rows_completed * 100)) / img_dims[1];
+      int bar_width = 50; // Width of the progress bar in characters
+      int pos = (progress * bar_width) / 100;
+
+      std::string bar =
+          "[" + std::string(pos, '=') + std::string(bar_width - pos, ' ') + "]";
+      std::clog << "\r" << bar << " " << progress << "% " << std::flush;
+    }
+  }
+
+  void render(const Hittable &world, size_t thread_count) { // -- Render --
+    const size_t width = img_dims[0];
+    const size_t height = img_dims[1];
+    std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
+
+    size_t rows_per_thread = height / thread_count;
+    std::vector<std::thread> threads;
+
+    for (size_t thread = 0; thread < thread_count; ++thread) {
+      size_t start_row = thread * rows_per_thread;
+      size_t end_row =
+          (thread == thread_count - 1) ? height : start_row + rows_per_thread;
+
+      threads.emplace_back([this, &world, start_row, end_row, width, &image]() {
+        this->render_chunk(world, start_row, end_row, width, image);
+      });
+    }
+
+    for (auto &thread : threads) {
+      thread.join();
+    }
+
+    // Output the image after all threads finish
+    std::cout << "P3\n" << width << ' ' << height << "\n255\n";
+    for (const auto &row : image) {
+      for (const auto &pixel : row) {
+        write_color(std::cout, pixel);
       }
     }
 
@@ -59,9 +101,10 @@ public:
   }
 
 private:
-  double aspect_ratio;          // Ratio of image width and height
-  Vec2<size_t> img_dims;        // Rendered image dimensions
-  int samples_per_pixel;        // Anti-aliasing sample count for each pixel
+  std::atomic<int> rows_completed = 0; // Counter for current render progress
+  double aspect_ratio;                 // Ratio of image width and height
+  Vec2<size_t> img_dims;               // Rendered image dimensions
+  int rays_per_pixel;        // Anti-aliasing sample count for each pixel
   double pixel_samples_scale{}; // Color scale factor for a sum of pixel samples
   int max_bounces;              // The max times rays can bounce in the scene
 
@@ -74,7 +117,7 @@ private:
     auto focal_length = 1.0;
     auto viewport_h = 2.0; // 2 is arbitrary, can be any number
 
-    pixel_samples_scale = 1.0 / samples_per_pixel;
+    pixel_samples_scale = 1.0 / rays_per_pixel;
 
     Vec2<double> viewport_dims{
         viewport_h * (double(img_dims[0]) / double(img_dims[1])), viewport_h
