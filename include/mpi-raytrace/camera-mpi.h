@@ -193,6 +193,8 @@ public:
         local_height, std::vector<Color>(width)
     );
 
+    auto start_time = std::chrono::steady_clock::now();
+
     // Each process renders its chunk
     this->render_chunk(world, Interval{start_row, end_row}, width, local_image);
 
@@ -259,6 +261,9 @@ public:
         }
       }
 
+      std::chrono::duration<double> elapsed =
+          std::chrono::steady_clock::now() - start_time;
+
       // Output the image after all processes finish
       std::cout << "P3\n" << width << ' ' << height << "\n255\n";
       for (const auto &row : image) {
@@ -267,7 +272,7 @@ public:
         }
       }
 
-      std::clog << "Done.\n";
+      std::clog << "Done in " << elapsed.count() << " seconds.";
     }
 
     MPI_Finalize();
