@@ -9,6 +9,7 @@
 
 using Color = Vec3;
 
+// Linear light to gamma-ish curve.
 inline double linear_to_gamma(double linear_component) {
   if (linear_component > 0)
     return std::sqrt(linear_component);
@@ -16,6 +17,7 @@ inline double linear_to_gamma(double linear_component) {
   return 0;
 }
 
+// Outputs a pixel in the PPM3 image format.
 inline void write_color(std::ostream &out, const Color &pixel_color) {
   static const Interval intensity(0.000, 0.999);
   auto rgb = Color{

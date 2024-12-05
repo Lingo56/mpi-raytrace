@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+// `HittableList` allows hit testing from a collection of `Hittable`s.
 class HittableList : public Hittable {
 public:
   std::vector<std::unique_ptr<Hittable>> objects;
@@ -31,6 +32,8 @@ public:
     std::optional<HitRecord> result;
     auto closest_so_far = ray_t.end();
 
+    // Hits every object in the list and returns the `HitRecord` of the hit
+    // closest to the ray origin.
     for (const auto &object : objects) {
       auto record = object->hit(ray, Interval(ray_t.begin(), closest_so_far));
       if (record.has_value()) {

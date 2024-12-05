@@ -97,7 +97,7 @@ class Camera {
     if (rec.has_value()) {
       Vec3 direction = Vec3(rec->normal + Vec3::random_unit());
 
-      __attribute__((musttail)) return ray_color_helper(
+      [[clang::musttail]] return ray_color_helper(
           Ray(rec->point, direction), depth - 1, world, attenuation * 0.7
       );
     }
@@ -109,6 +109,7 @@ class Camera {
     };
   }
 
+  // Trace a ray through a world with a maximum depth.
   [[nodiscard]] static Color
   ray_color(const Ray &ray, size_t depth, const Hittable &world) {
     return ray_color_helper(ray, depth, world, 1.0);
@@ -131,6 +132,7 @@ public:
     initialize();
   }
 
+  // Entrypoint for processes.
   void render_chunk(
       const Hittable &world, Interval<size_t> work_interval, size_t width,
       std::vector<std::vector<Color>> &image
@@ -139,6 +141,9 @@ public:
     auto end_row = work_interval.end();
     size_t local_height = end_row - start_row;
 
+    // Go through each pixel in the image one by one,
+    // generate a random ray that originates from the pixel,
+    // and trace it.
     for (size_t local_row = 0; local_row < local_height; ++local_row) {
       size_t current_height = start_row + local_row;
       for (size_t current_width = 0; current_width < width; ++current_width) {
@@ -154,6 +159,7 @@ public:
     }
   }
 
+  // Renders a `world` through this camera.
   void render(const Hittable &world) {
     MPI_Init(nullptr, nullptr);
 
@@ -170,6 +176,7 @@ public:
     size_t rows_per_process = height / size;
     size_t remainder_rows = height % size;
 
+    // Calculate work partition for self.
     size_t start_row{}, end_row{};
     if (rank < remainder_rows) {
       start_row = rank * (rows_per_process + 1);

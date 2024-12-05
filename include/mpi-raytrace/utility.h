@@ -14,6 +14,22 @@
 #include <stdexcept>
 #include <utility>
 
+#if defined __has_builtin
+#if __has_builtin(__builtin_assume)
+#define ASSUME(exp) __builtin_assume(exp)
+#elif __has_builtin(__builtin_unreachable)
+#define ASSUME(exp)                                                            \
+  do {                                                                         \
+    if (!(exp))                                                                \
+      __builtin_unreachable();                                                 \
+  } while (false)
+#else
+#define ASSUME(exp)                                                            \
+  do {                                                                         \
+  } while (false)
+#endif
+#endif
+
 // Utility Functions
 
 template <std::floating_point T>
@@ -21,11 +37,12 @@ template <std::floating_point T>
   return degrees * std::numbers::pi / 180.0;
 }
 
+// Generates a random `std::array`.
 template <size_t D, std::floating_point T>
 [[nodiscard]]
 constexpr auto random_vec(T min = 0.0, T max = 1.0) {
   assert(min <= max);
-  __builtin_assume(min <= max);
+  ASSUME(min <= max);
 
   std::random_device rng;
   static std::uniform_real_distribution<double> distribution(0, 1);
@@ -38,6 +55,7 @@ constexpr auto random_vec(T min = 0.0, T max = 1.0) {
   return res;
 }
 
+// `Value` always narrows losslessly into `Target`.
 template <typename Value, typename Target>
 concept fits_in = requires {
   requires std::integral<Value>;
@@ -52,7 +70,7 @@ concept fits_in = requires {
   );
 };
 
-// Narrows integers with a runtime check.
+// Checked integer narrowing.
 template <std::integral R, std::integral T>
   requires(!fits_in<T, R>)
 [[nodiscard]] constexpr R try_narrow(T value) {

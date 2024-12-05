@@ -11,10 +11,14 @@
 // Holds info about where the ray had a collision
 struct HitRecord {
   Point3 point;
+  // normal is in relation to surface orientation.
   Vec3 normal;
   double time{};
+  // is the hit on the front or back of the surface?
   bool is_frontface{};
 
+  // Creates a `HitRecord` based on the vector point away from the surface's
+  // outer side, aka the `outward_normal`.
   [[nodiscard]]
   static HitRecord
   from_face_normal(const Ray &ray, double time, const Vec3 &outward_normal) {
@@ -42,7 +46,7 @@ public:
   Hittable &operator=(const Hittable &) = default;
   Hittable &operator=(Hittable &&) = default;
 
-  // Only counts rays between tmin and tmax
+  // Only counts rays between Interval [tmin, tmax]
   [[nodiscard]]
   virtual std::optional<HitRecord>
   hit(const Ray &ray, Interval<double> ray_t) const = 0;

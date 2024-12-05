@@ -48,7 +48,7 @@ add_subdirectory(vendor/quasi-random)
 add_library(dependencies INTERFACE)
 target_link_libraries(dependencies INTERFACE MPI::MPI_CXX blaze quasirand cxxopts)
 # target_include_directories(dependencies INTERFACE "${fpng_SOURCE_DIR}")
-target_compile_options(dependencies INTERFACE -Wno-everything)
+# target_compile_options(dependencies INTERFACE -Wno-everything)
 
 add_executable(mpi-raytrace)
 target_include_directories(mpi-raytrace PUBLIC include/${CMAKE_PROJECT_NAME})

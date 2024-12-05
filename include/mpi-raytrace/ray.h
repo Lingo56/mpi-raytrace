@@ -1,7 +1,6 @@
 #ifndef RAY_H
 #define RAY_H
 
-#include <chrono>
 #include <concepts>
 #include <utility>
 

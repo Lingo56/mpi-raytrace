@@ -116,7 +116,7 @@ class Camera {
     if (rec.has_value()) {
       Vec3 direction = Vec3(rec->normal + Vec3::random_unit());
 
-      __attribute__((musttail)) return ray_color_helper(
+      [[clang::musttail]] return ray_color_helper(
           Ray(rec->point, direction), depth - 1, world, attenuation * 0.7
       );
     }
@@ -128,6 +128,7 @@ class Camera {
     };
   }
 
+  // Trace a ray through a world with a maximum depth.
   [[nodiscard]]
   static Color ray_color(const Ray &ray, size_t depth, const Hittable &world) {
     return ray_color_helper(ray, depth, world, 1.0);
@@ -150,6 +151,7 @@ public:
     initialize();
   }
 
+  // Entrypoint for thread.
   void render_chunk(
       const Hittable &world, Interval<size_t> work_interval, size_t width,
       std::vector<std::vector<Color>> &image
@@ -157,6 +159,9 @@ public:
     auto start_row = work_interval.begin();
     auto end_row = work_interval.end();
 
+    // Go through each pixel in the image one by one,
+    // generate a random ray that originates from the pixel,
+    // and trace it.
     for (size_t current_height = start_row; current_height < end_row;
          ++current_height) {
       for (size_t current_width = 0; current_width < width; ++current_width) {
@@ -170,19 +175,22 @@ public:
             Color(pixel_color * pixel_samples_scale);
       }
 
-      // Update progress after finishing a row
+      // Update progress after finishing a row for progress bar.
       rows_completed.fetch_add(1, std::memory_order_acq_rel);
     }
   }
 
-  void render(const Hittable &world, size_t total_threads) { // -- Render --
+  // Renders a `world` through this camera.
+  void render(const Hittable &world, size_t total_threads) {
     const size_t width = img_dims[0];
     const size_t height = img_dims[1];
     std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
 
     size_t rows_per_thread = height / total_threads;
     std::vector<std::future<void>> futures;
+    futures.reserve(total_threads);
 
+    // Spawn threads
     for (size_t thread_idx = 0; thread_idx < total_threads; ++thread_idx) {
       size_t start_row = thread_idx * rows_per_thread;
       size_t end_row = (thread_idx == total_threads - 1)
@@ -191,6 +199,7 @@ public:
 
       futures.emplace_back(std::async(
           std::launch::async,
+          // lambda to bind `this`.
           [&]<typename... Args>(Args &&...args) {
             this->render_chunk(std::forward<Args>(args)...);
           },
@@ -201,12 +210,13 @@ public:
       ));
     }
 
+    // Render the progress bar every 2ms in a loop until all threads finish.
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
     do {
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
 
       size_t progress =
-          rows_completed.load(std::memory_order_acq_rel) * 100 / img_dims[1];
+          rows_completed.load(std::memory_order_acquire) * 100 / img_dims[1];
       size_t bar_width = 50; // Width of the progress bar in characters
       size_t pos = (progress * bar_width) / 100;
 
@@ -222,15 +232,13 @@ public:
           case std::future_status::timeout:
             return true;
           case std::future_status::deferred:
+            // Impossible due to creating futures from std::async with
+            // std::launch::async
             throw std::logic_error("impossible");
           }
         })
     ));
     std::clog << "\n";
-
-    for (auto &future : futures) {
-      future.wait();
-    }
 
     // Output the image after all threads finish
     std::cout << "P3\n" << width << ' ' << height << "\n255\n";
