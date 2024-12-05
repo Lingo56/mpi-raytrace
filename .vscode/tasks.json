@@ -16,13 +16,12 @@
     {
       "label": "Run with MPI & stdout redirect",
       "type": "shell",
-      "command": "time",
+      "command": "mpiexec",
       "args": [
-        "mpiexec",
         "-n",
         "4",
         "${command:cmake.launchTargetPath}",
-        "-r32",
+        "-r8",
         ">",
         "image.ppm"
       ],
