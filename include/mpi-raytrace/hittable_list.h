@@ -26,7 +26,7 @@ public:
     );
   }
 
-  std::optional<HitRecord>
+  [[nodiscard]] std::optional<HitRecord>
   hit(const Ray &ray, Interval<double> ray_t) const override {
     std::optional<HitRecord> result;
     auto closest_so_far = ray_t.max();
