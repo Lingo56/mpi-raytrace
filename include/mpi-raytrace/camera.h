@@ -181,24 +181,33 @@ private:
   }
 
   [[nodiscard]]
-  static Color ray_color(const Ray &ray, long depth, const Hittable &world) {
+  // NOLINTNEXTLINE(misc-no-recursion) - OK because of musttail
+  static Color ray_color_helper(
+      const Ray &ray, size_t depth, const Hittable &world, double attenuation
+  ) {
+    constexpr auto EPSILON = 0.001; // shadow acne fix
+
     if (depth <= 0)
       return Color{0, 0, 0};
 
-    constexpr auto EPSILON = 0.001; // shadow acne fix
     auto rec = world.hit(ray, Interval(EPSILON, infinity));
 
     if (rec.has_value()) {
       Vec3 direction = Vec3(rec->normal + Vec3::random_unit());
 
-      return Color(
-          0.7 * ray_color(Ray(rec->point, direction), depth - 1, world)
+      __attribute__((musttail)) return ray_color_helper(
+          Ray(rec->point, direction), depth - 1, world, attenuation * 0.7
       );
     }
 
     Vec3 unit_direction = Vec3(normalize(ray.direction()));
     auto a = 0.5 * (unit_direction.y() + 1.0);
     return Color{(1.0 - a) * Color{1.0, 1.0, 1.0} + a * Color{0.5, 0.7, 1.0}};
+  }
+
+  [[nodiscard]]
+  static Color ray_color(const Ray &ray, size_t depth, const Hittable &world) {
+    return ray_color_helper(ray, depth, world, 1.0);
   }
 };
 
