@@ -15,9 +15,6 @@
 #include <utility>
 #include <vector>
 
-#include "blaze/math/expressions/DVecMapExpr.h"
-#include "blaze/math/expressions/DVecScalarMultExpr.h"
-
 #include "color.h"
 #include "hittable.h"
 #include "interval.h"
