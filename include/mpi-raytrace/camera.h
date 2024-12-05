@@ -2,11 +2,14 @@
 #define CAMERA_H
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <ostream>
-#include <stop_token>
+#include <ranges>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
@@ -21,10 +24,21 @@
 #include "ray.h"
 #include "vec.h"
 
+#ifdef __cpp_lib_hardware_interference_size
+using std::hardware_constructive_interference_size;
+using std::hardware_destructive_interference_size;
+#else
+// 64 bytes on x86-64
+constexpr std::size_t hardware_constructive_interference_size = 64;
+constexpr std::size_t hardware_destructive_interference_size = 64;
+#endif
+
 class Camera {
-  std::atomic<size_t> rows_completed = 0; // Counter for current render progress
-  double aspect_ratio;                    // Ratio of image width and height
-  Vec2<size_t> img_dims;                  // Rendered image dimensions
+  alignas(hardware_destructive_interference_size
+  ) std::atomic<size_t> rows_completed =
+      0;                        // Counter for current render progress
+  double aspect_ratio;          // Ratio of image width and height
+  Vec2<size_t> img_dims;        // Rendered image dimensions
   size_t rays_per_pixel;        // Anti-aliasing sample count for each pixel
   double pixel_samples_scale{}; // Color scale factor for a sum of pixel samples
   size_t max_bounces;           // The max times rays can bounce in the scene
@@ -81,8 +95,8 @@ class Camera {
 
     auto offset = sample_square();
     auto pixel_sample = pixel00_loc +
-                        ((current_width + offset.x()) * pixel_delta_u) +
-                        ((current_height + offset.y()) * pixel_delta_v);
+                        (((double)current_width + offset.x()) * pixel_delta_u) +
+                        (((double)current_height + offset.y()) * pixel_delta_v);
 
     auto ray_origin = camera_center;
     auto ray_direction = Vec3{pixel_sample - ray_origin};
@@ -111,8 +125,10 @@ class Camera {
     }
 
     Vec3 unit_direction = Vec3(normalize(ray.direction()));
-    auto a = 0.5 * (unit_direction.y() + 1.0);
-    return Color{(1.0 - a) * Color{1.0, 1.0, 1.0} + a * Color{0.5, 0.7, 1.0}};
+    auto coeff_a = 0.5 * (unit_direction.y() + 1.0);
+    return Color{
+        (1.0 - coeff_a) * Color{1.0, 1.0, 1.0} + coeff_a * Color{0.5, 0.7, 1.0}
+    };
   }
 
   [[nodiscard]]
@@ -138,9 +154,12 @@ public:
   }
 
   void render_chunk(
-      const Hittable &world, size_t start_row, size_t end_row, size_t width,
+      const Hittable &world, Interval<size_t> work_interval, size_t width,
       std::vector<std::vector<Color>> &image
   ) {
+    auto start_row = work_interval.begin();
+    auto end_row = work_interval.end();
+
     for (size_t current_height = start_row; current_height < end_row;
          ++current_height) {
       for (size_t current_width = 0; current_width < width; ++current_width) {
@@ -155,7 +174,40 @@ public:
       }
 
       // Update progress after finishing a row
-      ++rows_completed;
+      rows_completed.fetch_add(1, std::memory_order_acq_rel);
+    }
+  }
+
+  void render(const Hittable &world, size_t total_threads) { // -- Render --
+    const size_t width = img_dims[0];
+    const size_t height = img_dims[1];
+    std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
+
+    size_t rows_per_thread = height / total_threads;
+    std::vector<std::future<void>> futures;
+
+    for (size_t thread_idx = 0; thread_idx < total_threads; ++thread_idx) {
+      size_t start_row = thread_idx * rows_per_thread;
+      size_t end_row = (thread_idx == total_threads - 1)
+                           ? height
+                           : start_row + rows_per_thread;
+
+      futures.emplace_back(std::async(
+          std::launch::async,
+          [&]<typename... Args>(Args &&...args) {
+            this->render_chunk(std::forward<Args>(args)...);
+          },
+          std::ref(world),
+          Interval<size_t>{start_row, end_row},
+          width,
+          std::ref(image)
+      ));
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-do-while)
+    do {
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+
       size_t progress =
           rows_completed.load(std::memory_order_acq_rel) * 100 / img_dims[1];
       size_t bar_width = 50; // Width of the progress bar in characters
@@ -163,38 +215,24 @@ public:
 
       std::string bar =
           "[" + std::string(pos, '=') + std::string(bar_width - pos, ' ') + "]";
-      std::clog << "\r" << bar << " " << progress << "% " << std::flush;
-    }
-  }
+      std::clog << "\r" << "\x1B[2K" << bar << " " << progress << "%"
+                << std::flush;
+    } while (!std::ranges::empty(
+        futures | std::views::filter([](const auto &future) {
+          switch (future.wait_for(std::chrono::milliseconds(0))) {
+          case std::future_status::ready:
+            return false;
+          case std::future_status::timeout:
+            return true;
+          case std::future_status::deferred:
+            throw std::logic_error("impossible");
+          }
+        })
+    ));
+    std::clog << "\n";
 
-  void render(const Hittable &world, size_t thread_count) { // -- Render --
-    const size_t width = img_dims[0];
-    const size_t height = img_dims[1];
-    std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
-
-    size_t rows_per_thread = height / thread_count;
-    std::vector<std::jthread> pool;
-    pool.reserve(thread_count);
-
-    for (size_t thread = 0; thread < thread_count; ++thread) {
-      size_t start_row = thread * rows_per_thread;
-      size_t end_row =
-          (thread == thread_count - 1) ? height : start_row + rows_per_thread;
-
-      pool.emplace_back(
-          [&]<typename... Args>(std::stop_token, Args &&...args) {
-            this->render_chunk(std::forward<Args>(args)...);
-          },
-          std::ref(world),
-          start_row,
-          end_row,
-          width,
-          std::ref(image)
-      );
-    }
-
-    for (auto &thread : pool) {
-      thread.join();
+    for (auto &future : futures) {
+      future.wait();
     }
 
     // Output the image after all threads finish
@@ -205,7 +243,7 @@ public:
       }
     }
 
-    std::clog << "\rDone.                 \n";
+    std::clog << "Done.\n";
   }
 };
 
