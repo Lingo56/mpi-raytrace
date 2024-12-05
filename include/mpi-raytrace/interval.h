@@ -17,7 +17,7 @@ public:
   }
 
   [[nodiscard]] constexpr T size() const
-      noexcept(std::is_nothrow_invocable_r_v<T, decltype(T::operator-), T>) {
+      noexcept(noexcept(std::declval<T>() - std::declval<T>())) {
     __builtin_assume(min_ <= max_);
     return max_ - min_;
   }
