@@ -23,20 +23,20 @@ int main() {
   HittableList world;
 
   // Add spheres for "H"
-  for (size_t i = -2; i <= 2; i++) {
+  for (std::ptrdiff_t i = -2; i <= 2; i++) {
     // Left vertical line
     // world.add(make_shared<Sphere>(Point3{-2, i, -4}, 0.5));
     world.add(Sphere{Point3{-2, (double)i, -4}, 0.5});
     // Right vertical line
     world.add(Sphere{Point3{-0, (double)i, -4}, 0.5});
   }
-  for (size_t j = -1; j <= -0; j++) {
+  for (std::ptrdiff_t j = -1; j <= -0; j++) {
     // Horizontal connector
     world.add(Sphere{Point3{(double)j, 0, -4}, 0.5});
   }
 
   // Add spheres for "I"
-  for (size_t i = -2; i <= 2; i++) {
+  for (std::ptrdiff_t i = -2; i <= 2; i++) {
     // Vertical line
     world.add(Sphere{Point3{2, (double)i, -4}, 0.5});
   }
