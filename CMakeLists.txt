@@ -9,17 +9,18 @@ find_package(MPI REQUIRED CXX)
 include(cmake/CPM.cmake)
 
 set(BLA_SIZEOF_INTEGER 8)
-CPMAddPackage(
-  NAME LAPACK
-  GITHUB_REPOSITORY OpenMathLib/OpenBLAS
-  GIT_TAG v0.3.28
-  OPTIONS
-    "BUILD_TESTING OFF"
-)
-if(NOT LAPACK_ADDED)
-  message(FATAL_ERROR "LAPACK not added")
-endif()
-find_package(LAPACK REQUIRED CXX)
+# CPMAddPackage(
+#   NAME LAPACK
+#   GITHUB_REPOSITORY OpenMathLib/OpenBLAS
+#   GIT_TAG v0.3.28
+#   OPTIONS
+#     "BUILD_LAPACK_DEPRECATED OFF"
+#     "BUILD_TESTING OFF"
+# )
+# if(NOT LAPACK_ADDED)
+#   message(FATAL_ERROR "LAPACK not added")
+# endif()
+# find_package(LAPACK REQUIRED CXX)
 
 CPMAddPackage(
   NAME blaze
@@ -28,6 +29,7 @@ CPMAddPackage(
   OPTIONS
     "BLAZE_SMP_THREADS C++11"
     "BLAZE_BLAS_IS_64BIT 1"
+    "USE_LAPACK OFF"
 )
 if(NOT blaze_ADDED)
   message(FATAL_ERROR "blaze not added")
