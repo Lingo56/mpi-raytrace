@@ -2,7 +2,7 @@
 #define VEC_H
 
 #include "blaze/math/Vector.h"
-#include "blaze/math/expressions/DVecNormExpr.h"
+#include "blaze/math/expressions/DVecScalarMultExpr.h"
 #include "utility.h"
 #include <cmath>
 
@@ -22,44 +22,17 @@ struct Vec3 : public blaze::StaticVector<double, 3UL> {
 
   constexpr Vec3(std::initializer_list<double> args) noexcept : Base(args) {}
 
-  static Vec3 random() {
-    return Vec3{random_double(), random_double(), random_double()};
+  static Vec3 random(double min = -1, double max = 1) {
+    return Vec3{random_vec<3, double>(min, max)};
   }
 
-  static Vec3 random(double min, double max) {
-    return Vec3{
-        random_double(min, max),
-        random_double(min, max),
-        random_double(min, max)
-    };
-  }
+  static auto random_unit() { return blaze::normalize(random()); }
 
-  static Vec3 random_unit_vector() {
-    while (true) {
-      // Generate a random vector in [-1, 1]
-      Vec3 random_vector{
-          random_double(-1.0, 1.0),
-          random_double(-1.0, 1.0),
-          random_double(-1.0, 1.0)
-      };
-
-      // Calculate squared length
-      double len_sqr = sqrNorm(random_vector);
-
-      // Check if the point lies inside the unit sphere
-      if (len_sqr <= 1.0) {
-        if (1e-160 < len_sqr && len_sqr <= 1)
-          return Vec3(random_vector / std::sqrt(len_sqr));
-      }
-    }
-  }
-
-  static Vec3 random_on_hemisphere(const Vec3 &normal) {
-    Vec3 on_unit_sphere = random_unit_vector();
-    if (dot(on_unit_sphere, normal) > 0.0) // In same hemisphere as the normal
-      return on_unit_sphere;
-    else
-      return Vec3(-on_unit_sphere);
+  static auto random_on_hemisphere(const Vec3 &normal) {
+    auto on_unit_sphere = random_unit();
+    // In same hemisphere as the normal
+    double sign = std::copysign(1.0, dot(on_unit_sphere, normal));
+    return on_unit_sphere * sign;
   }
 
   [[nodiscard]]

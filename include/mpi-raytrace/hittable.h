@@ -5,21 +5,28 @@
 #include "interval.h"
 #include "ray.h"
 #include "vec.h"
+#include <cmath>
+#include <optional>
 
 // Holds info about where the ray had a collision
-class HitRecord {
-public:
-  Point3 p;
+struct HitRecord {
+  Point3 point;
   Vec3 normal;
-  double t{};
-  bool front_face{};
+  double time{};
+  bool is_frontface{};
 
-  void set_face_normal(const Ray &ray, const Vec3 &outward_normal) {
-    // Sets the hit record normal vector.
+  [[nodiscard]]
+  static HitRecord
+  from_face_normal(const Ray &ray, double time, const Vec3 &outward_normal) {
     // NOTE: the parameter `outward_normal` is assumed to have unit length.
+    auto is_frontface = dot(ray.direction(), outward_normal) < 0;
 
-    front_face = dot(ray.direction(), outward_normal) < 0;
-    normal = front_face ? outward_normal : Vec3(-outward_normal);
+    return {
+        ray.at(time),
+        Vec3{outward_normal * std::copysign(1.0, is_frontface)},
+        time,
+        is_frontface
+    };
   }
 };
 
@@ -36,7 +43,9 @@ public:
   Hittable &operator=(Hittable &&) = default;
 
   // Only counts rays between tmin and tmax
-  virtual bool hit(const Ray &ray, Interval ray_t, HitRecord &rec) const = 0;
+  [[nodiscard]]
+  virtual std::optional<HitRecord>
+  hit(const Ray &ray, Interval<double> ray_t) const = 0;
 };
 
 #endif

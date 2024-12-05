@@ -6,19 +6,18 @@ find_package(MPI REQUIRED CXX)
 
 include(cmake/CPM.cmake)
 
-set(CMAKE_PROJECT_CLAPACK_INCLUDE_BEFORE ${CMAKE_CURRENT_LIST_DIR}/cmake/FixCLAPACK.cmake)
+set(BLA_SIZEOF_INTEGER 8)
 CPMAddPackage(
   NAME LAPACK
-  VERSION 3.2.1
-  URL http://www.netlib.org/clapack/clapack-3.2.1-CMAKE.tgz
+  GITHUB_REPOSITORY OpenMathLib/OpenBLAS
+  GIT_TAG v0.3.28
+  OPTIONS
+    "BUILD_TESTING OFF"
 )
-
 if(NOT LAPACK_ADDED)
   message(FATAL_ERROR "LAPACK not added")
-else()
-  target_include_directories(f2c INTERFACE "${LAPACK_SOURCE_DIR}/INCLUDE")
-  target_include_directories(lapack INTERFACE "${LAPACK_SOURCE_DIR}/INCLUDE")
 endif()
+find_package(LAPACK REQUIRED CXX)
 
 CPMAddPackage(
   NAME blaze
@@ -32,15 +31,23 @@ if(NOT blaze_ADDED)
   message(FATAL_ERROR "blaze not added")
 endif()
 
-add_subdirectory(vendor/fpng)
+# add_subdirectory(vendor/fpng)
+add_subdirectory(vendor/quasi-random)
 
 add_library(dependencies INTERFACE)
-target_link_libraries(dependencies INTERFACE MPI::MPI_CXX fpng blaze)
+target_link_libraries(dependencies INTERFACE MPI::MPI_CXX blaze quasirand)
 # target_include_directories(dependencies INTERFACE "${fpng_SOURCE_DIR}")
+target_compile_options(dependencies INTERFACE -Wno-everything)
 
 add_executable(mpi-raytrace)
 target_include_directories(mpi-raytrace PUBLIC include/${CMAKE_PROJECT_NAME})
 target_compile_features(mpi-raytrace PUBLIC cxx_std_23)
 target_link_libraries(mpi-raytrace PUBLIC dependencies)
+
+if(NOT NDEBUG)
+  target_compile_options(mpi-raytrace PRIVATE -fsanitize=undefined)
+  target_link_options(mpi-raytrace PRIVATE -fsanitize=undefined)
+  set_target_properties(mpi-raytrace PROPERTIES LINKER_TYPE LLD)
+endif()
 
 add_subdirectory(src)

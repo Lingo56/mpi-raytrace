@@ -1,38 +1,51 @@
 #ifndef UTLITY_H
 #define UTLITY_H
 
+#include <cassert>
 #include <cmath>
+#include <concepts>
 #include <cstdlib>
-#include <limits>
-#include <memory>
+#include <format>
 #include <numbers>
-#include <random>
 
-// C++ Std Usings
-
-using std::make_shared;
-using std::shared_ptr;
-
-// Constants
-
-const double infinity = std::numeric_limits<double>::infinity();
-const double pi = std::numbers::pi;
+#include <quasirand.hpp>
+#include <stdexcept>
+#include <utility>
 
 // Utility Functions
 
-inline double degrees_to_radians(double degrees) {
-  return degrees * pi / 180.0;
+template <std::floating_point T>
+[[nodiscard]] constexpr T degrees_to_radians(T degrees) {
+  return degrees * std::numbers::pi / 180.0;
 }
 
-inline double random_double() {
-  static std::uniform_real_distribution<double> distribution(0.0, 1.0);
-  static std::mt19937 generator;
-  return distribution(generator);
+template <size_t D, std::floating_point T>
+[[nodiscard]]
+constexpr auto random_vec(T min = 0.0, T max = 1.0) {
+  assert(min <= max);
+  __builtin_assume(min <= max);
+
+  static quasirand::QuasiRandom<D> qrng;
+
+  auto res = qrng();
+  for (auto &val : res)
+    val = std::fma(val, max - min, min);
+
+  return res;
 }
 
-inline double random_double(double min, double max) {
-  // Returns a random real in [min,max).
-  return min + (max - min) * random_double();
+// Narrows integers with a runtime check.
+template <typename R, typename T>
+[[nodiscard]] constexpr R narrow_checked(T value) {
+  if (!std::in_range<R>(value))
+    throw std::range_error(std::format(
+        "Value '{}' of {} cannot fit into {}.",
+        value,
+        typeid(T).name(),
+        typeid(R).name()
+    ));
+
+  return static_cast<R>(value);
 }
 
 #endif

@@ -1,33 +1,57 @@
 #ifndef INTERVAL_H
 #define INTERVAL_H
 
-#include "utility.h"
-class Interval {
+#include <algorithm>
+#include <cassert>
+#include <concepts>
+#include <limits>
+
+constexpr double infinity = std::numeric_limits<double>::infinity();
+
+template <std::totally_ordered T> class Interval {
+  T min_, max_;
+
 public:
-  double min, max;
-
-  Interval() : min(+infinity), max(-infinity) {} // Default interval is empty
-
-  Interval(double min, double max) : min(min), max(max) {}
-
-  [[nodiscard]] double size() const { return max - min; }
-
-  [[nodiscard]] bool contains(double x) const { return min <= x && x <= max; }
-
-  [[nodiscard]] bool surrounds(double x) const { return min < x && x < max; }
-
-  [[nodiscard]] double clamp(double x) const {
-    if (x < min)
-      return min;
-    if (x > max)
-      return max;
-    return x;
+  constexpr Interval(T min, T max) : min_(min), max_(max) {
+    assert(min <= max);
   }
 
-  static const Interval empty, universe;
-};
+  [[nodiscard]] constexpr T size() const
+      noexcept(std::is_nothrow_invocable_r_v<T, decltype(T::operator-), T>) {
+    __builtin_assume(min_ <= max_);
+    return max_ - min_;
+  }
 
-const Interval Interval::empty = Interval(+infinity, -infinity);
-const Interval Interval::universe = Interval(-infinity, +infinity);
+  template <typename U>
+    requires std::totally_ordered_with<U, T>
+  [[nodiscard]] constexpr bool contains(U x) const noexcept {
+    __builtin_assume(min_ <= max_);
+    return min_ <= x && x <= max_;
+  }
+
+  template <typename U>
+    requires std::totally_ordered_with<U, T>
+  [[nodiscard]] constexpr bool surrounds(U x) const noexcept {
+    __builtin_assume(min_ <= max_);
+    return min_ < x && x < max_;
+  }
+
+  template <typename U>
+    requires std::totally_ordered_with<U, T> && std::convertible_to<T, U>
+  [[nodiscard]] constexpr U clamp(U x) const noexcept {
+    __builtin_assume(min_ <= max_);
+    return std::ranges::clamp(x, min_, max_);
+  }
+
+  [[nodiscard]]
+  constexpr T min() const noexcept {
+    return min_;
+  }
+
+  [[nodiscard]]
+  constexpr T max() const noexcept {
+    return max_;
+  }
+};
 
 #endif

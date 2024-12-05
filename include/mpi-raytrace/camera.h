@@ -1,35 +1,37 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include <atomic>
+#include <cstddef>
+#include <functional>
+#include <iostream>
+#include <ostream>
+#include <stop_token>
+#include <string>
+#include <thread>
+#include <vector>
+
 #include "blaze/math/expressions/DVecMapExpr.h"
 #include "blaze/math/expressions/DVecScalarMultExpr.h"
+
 #include "color.h"
 #include "hittable.h"
 #include "interval.h"
 #include "ray.h"
 #include "utility.h"
 #include "vec.h"
-#include <atomic>
-#include <cstddef>
-#include <iostream>
-#include <ostream>
-#include <string>
-#include <sys/types.h>
-#include <thread>
-#include <vector>
 
 class camera {
 public:
   camera(
-      double image_width, double image_height, int samples_per_pixel,
-      int max_bounces
+      double image_width, double image_height, size_t samples_per_pixel,
+      size_t max_bounces
   )
       : aspect_ratio(image_width / image_height),
         rays_per_pixel(samples_per_pixel), max_bounces(max_bounces) {
     img_dims = max(
         Vec2<size_t>{
-            static_cast<unsigned long>(image_height),
-            (size_t)(image_height / aspect_ratio)
+            (size_t)(image_height), (size_t)(image_height / aspect_ratio)
         },
         1U
     );
@@ -47,7 +49,8 @@ public:
         Color pixel_color{0, 0, 0};
         for (size_t sample = 0; sample < rays_per_pixel; ++sample) {
           Ray ray = get_ray(current_width, current_height);
-          pixel_color += ray_color(ray, max_bounces, world);
+          pixel_color +=
+              ray_color(ray, narrow_checked<long>(max_bounces), world);
         }
         // Store the result
         image[current_height][current_width] =
@@ -56,10 +59,10 @@ public:
 
       // Update progress after finishing a row
       ++rows_completed;
-      int progress =
-          (static_cast<unsigned long>(rows_completed * 100)) / img_dims[1];
-      int bar_width = 50; // Width of the progress bar in characters
-      int pos = (progress * bar_width) / 100;
+      size_t progress =
+          rows_completed.load(std::memory_order_acq_rel) * 100 / img_dims[1];
+      size_t bar_width = 50; // Width of the progress bar in characters
+      size_t pos = (progress * bar_width) / 100;
 
       std::string bar =
           "[" + std::string(pos, '=') + std::string(bar_width - pos, ' ') + "]";
@@ -73,19 +76,27 @@ public:
     std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
 
     size_t rows_per_thread = height / thread_count;
-    std::vector<std::thread> threads;
+    std::vector<std::jthread> pool;
+    pool.reserve(thread_count);
 
     for (size_t thread = 0; thread < thread_count; ++thread) {
       size_t start_row = thread * rows_per_thread;
       size_t end_row =
           (thread == thread_count - 1) ? height : start_row + rows_per_thread;
 
-      threads.emplace_back([this, &world, start_row, end_row, width, &image]() {
-        this->render_chunk(world, start_row, end_row, width, image);
-      });
+      pool.emplace_back(
+          [&]<typename... Args>(std::stop_token, Args &&...args) {
+            this->render_chunk(std::forward<Args>(args)...);
+          },
+          std::ref(world),
+          start_row,
+          end_row,
+          width,
+          std::ref(image)
+      );
     }
 
-    for (auto &thread : threads) {
+    for (auto &thread : pool) {
       thread.join();
     }
 
@@ -101,12 +112,12 @@ public:
   }
 
 private:
-  std::atomic<int> rows_completed = 0; // Counter for current render progress
-  double aspect_ratio;                 // Ratio of image width and height
-  Vec2<size_t> img_dims;               // Rendered image dimensions
-  int rays_per_pixel;        // Anti-aliasing sample count for each pixel
+  std::atomic<size_t> rows_completed = 0; // Counter for current render progress
+  double aspect_ratio;                    // Ratio of image width and height
+  Vec2<size_t> img_dims;                  // Rendered image dimensions
+  size_t rays_per_pixel;        // Anti-aliasing sample count for each pixel
   double pixel_samples_scale{}; // Color scale factor for a sum of pixel samples
-  int max_bounces;              // The max times rays can bounce in the scene
+  size_t max_bounces;           // The max times rays can bounce in the scene
 
   Point3 camera_center; // Camera center
   Point3 pixel00_loc;   // Location of pixel 0, 0
@@ -142,7 +153,16 @@ private:
         Point3(viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v));
   }
 
-  Ray get_ray(int current_width, int current_height) {
+  [[nodiscard]] static auto sample_square() {
+    // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit
+    // square.
+    auto res = Vec3::random(-0.5, 0.5);
+    res.z() = 0;
+    return res;
+  }
+
+  [[nodiscard]]
+  Ray get_ray(size_t current_width, size_t current_height) {
     // Construct a camera ray originating from the origin and directed at
     // randomly sampled
     // point around the pixel location i, j.
@@ -155,30 +175,28 @@ private:
     auto ray_origin = camera_center;
     auto ray_direction = pixel_sample - ray_origin;
 
-    return Ray(ray_origin, Vec3(ray_direction));
+    return {ray_origin, Vec3(ray_direction)};
   }
 
-  [[nodiscard]] static Vec3 sample_square() {
-    // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit
-    // square.
-    return Vec3{random_double() - 0.5, random_double() - 0.5, 0};
-  }
-
-  static Color ray_color(const Ray &ray, int depth, const Hittable &world) {
+  [[nodiscard]]
+  static Color ray_color(const Ray &ray, long depth, const Hittable &world) {
     if (depth <= 0)
       return Color{0, 0, 0};
 
-    HitRecord rec;
+    constexpr auto EPSILON = 0.001; // shadow acne fix
+    auto rec = world.hit(ray, Interval(EPSILON, infinity));
 
-    if (world.hit(ray, Interval(0.001, infinity), rec)) {
-      Vec3 direction = Vec3(rec.normal + Vec3::random_unit_vector());
+    if (rec.has_value()) {
+      Vec3 direction = Vec3(rec->normal + Vec3::random_unit());
 
-      return Color(0.7 * ray_color(Ray(rec.p, direction), depth - 1, world));
+      return Color(
+          0.7 * ray_color(Ray(rec->point, direction), depth - 1, world)
+      );
     }
 
     Vec3 unit_direction = Vec3(normalize(ray.direction()));
     auto a = 0.5 * (unit_direction.y() + 1.0);
-    return Color((1.0 - a) * Color{1.0, 1.0, 1.0} + a * Color{0.5, 0.7, 1.0});
+    return Color{(1.0 - a) * Color{1.0, 1.0, 1.0} + a * Color{0.5, 0.7, 1.0}};
   }
 };
 
