@@ -3,12 +3,12 @@
 
 #include <cmath>
 #include <cstddef>
-#include <format>
 #include <iostream>
 #include <string>
 #include <thread>
 
 #include <cxxopts.hpp>
+#include <fmt/format.h>
 
 #ifdef USE_MPI
 #include "camera-mpi.h"
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   auto max_bounces = args["bounce"].as<size_t>();
   auto n_threads = args["threads"].as<size_t>();
 
-  std::clog << std::format(
+  std::clog << fmt::format(
       "Rendering a {}x{}px image with {} rays/px and {} max bounces.\n",
       image_width,
       image_height,
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
       max_bounces
   );
 #ifndef USE_MPI
-  std::clog << std::format("Using {} threads.\n", n_threads);
+  std::clog << fmt::format("Using {} threads.\n", n_threads);
 #endif
 
   Camera cam(

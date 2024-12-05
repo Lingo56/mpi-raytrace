@@ -5,14 +5,14 @@
 #include <cmath>
 #include <concepts>
 #include <cstdlib>
-#include <format>
 #include <limits>
 #include <numbers>
-
-#include <quasirand.hpp>
 #include <random>
 #include <stdexcept>
 #include <utility>
+
+#include <fmt/format.h>
+#include <quasirand.hpp>
 
 #if defined __has_builtin
 #if __has_builtin(__builtin_assume)
@@ -40,7 +40,7 @@ template <std::floating_point T>
 // Generates a random `std::array`.
 template <size_t D, std::floating_point T>
 [[nodiscard]]
-constexpr auto random_vec(T min = 0.0, T max = 1.0) {
+auto random_vec(T min = 0.0, T max = 1.0) {
   assert(min <= max);
   ASSUME(min <= max);
 
@@ -75,7 +75,7 @@ template <std::integral R, std::integral T>
   requires(!fits_in<T, R>)
 [[nodiscard]] constexpr R try_narrow(T value) {
   if (!std::in_range<R>(value))
-    throw std::range_error(std::format(
+    throw std::range_error(fmt::format(
         "Value '{}' of {} cannot fit into {}.",
         value,
         typeid(T).name(),

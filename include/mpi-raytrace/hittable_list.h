@@ -17,7 +17,7 @@ class HittableList : public Hittable {
 public:
   std::vector<std::unique_ptr<Hittable>> objects;
 
-  constexpr void clear() noexcept { objects.clear(); }
+  void clear() noexcept { objects.clear(); }
 
   template <typename U>
     requires std::derived_from<U, Hittable>
