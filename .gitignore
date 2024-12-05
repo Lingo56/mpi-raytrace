@@ -36,6 +36,7 @@
 # CMake
 
 out
+build
 CMakeUserPresets.json
 compile_commands.json
 

@@ -7,7 +7,7 @@
       "label": "Run with stdout redirect",
       "type": "shell",
       "command": "${command:cmake.launchTargetPath}",
-      "args": [">", "image.ppm"],
+      "args": ["-r128", "-t12", ">", "image.ppm"],
       "problemMatcher": [],
       "presentation": {
         "close": false
@@ -16,11 +16,13 @@
     {
       "label": "Run with MPI & stdout redirect",
       "type": "shell",
-      "command": "mpiexec",
+      "command": "time",
       "args": [
+        "mpiexec",
         "-n",
-        "8",
+        "4",
         "${command:cmake.launchTargetPath}",
+        "-r32",
         ">",
         "image.ppm"
       ],

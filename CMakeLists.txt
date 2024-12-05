@@ -27,7 +27,7 @@ CPMAddPackage(
   GIT_REPOSITORY https://bitbucket.org/blaze-lib/blaze.git
   VERSION 3.8.2
   OPTIONS
-    "BLAZE_SMP_THREADS C++11"
+    # "BLAZE_SMP_THREADS C++11"
     "BLAZE_BLAS_IS_64BIT 1"
     "USE_LAPACK OFF"
 )
