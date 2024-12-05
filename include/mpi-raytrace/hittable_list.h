@@ -29,10 +29,10 @@ public:
   [[nodiscard]] std::optional<HitRecord>
   hit(const Ray &ray, Interval<double> ray_t) const override {
     std::optional<HitRecord> result;
-    auto closest_so_far = ray_t.max();
+    auto closest_so_far = ray_t.end();
 
     for (const auto &object : objects) {
-      auto record = object->hit(ray, Interval(ray_t.min(), closest_so_far));
+      auto record = object->hit(ray, Interval(ray_t.begin(), closest_so_far));
       if (record.has_value()) {
         closest_so_far = record->time;
         result = std::move(*record);
