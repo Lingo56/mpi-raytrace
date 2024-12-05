@@ -31,11 +31,20 @@ if(NOT blaze_ADDED)
   message(FATAL_ERROR "blaze not added")
 endif()
 
+CPMAddPackage(
+  NAME cxxopts
+  GITHUB_REPOSITORY jarro2783/cxxopts
+  GIT_TAG v3.2.0
+)
+if(NOT cxxopts_ADDED)
+  message(FATAL_ERROR "cxxopts not added")
+endif()
+
 # add_subdirectory(vendor/fpng)
 add_subdirectory(vendor/quasi-random)
 
 add_library(dependencies INTERFACE)
-target_link_libraries(dependencies INTERFACE MPI::MPI_CXX blaze quasirand)
+target_link_libraries(dependencies INTERFACE MPI::MPI_CXX blaze quasirand cxxopts)
 # target_include_directories(dependencies INTERFACE "${fpng_SOURCE_DIR}")
 target_compile_options(dependencies INTERFACE -Wno-everything)
 

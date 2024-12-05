@@ -3,23 +3,19 @@
 
 #include <cmath>
 #include <cstddef>
+#include <format>
+#include <iostream>
+#include <string>
+#include <thread>
+
+#include <cxxopts.hpp>
 
 #include "camera.h"
 #include "hittable_list.h"
 #include "sphere.h"
 #include "vec.h"
 
-constexpr int image_width = 1280;
-constexpr int image_height = 720;
-constexpr int rays_per_pixel = 200; // 1-8x debug, 100x-500x final render
-constexpr int max_bounces = 6;      // Max times rays can bounce. Default: 10
-                                    // Lower = faster but less accurate
-
-constexpr int thread_count = 12; // Number of CPU threads the renderer will use
-
-int main() {
-  // -- World --
-
+HittableList build_world() {
   HittableList world;
 
   // Add spheres for "H"
@@ -43,7 +39,41 @@ int main() {
 
   world.add(Sphere{Point3{0, -102.5, -1}, 100});
 
-  Camera cam(image_width, image_height, rays_per_pixel, max_bounces);
+  return world;
+};
 
-  cam.render(world, thread_count);
+int main(int argc, char **argv) {
+  using namespace cxxopts;
+
+  Options options{"raytrace", "Render a scene using ray tracing."};
+  options
+      .add_options()("w,width", "Width of image output in pixels.", cxxopts::value<size_t>()->default_value("1920"))("h,height", "Height of image output in pixels.", cxxopts::value<size_t>()->default_value("1080"))("r,rays", "Number of rays shot out per pixel.", cxxopts::value<size_t>()->default_value("32"))(
+          "b,bounce",
+          "Maximum number of times rays can bounce. Lower is faster but less accurate.",
+          cxxopts::value<size_t>()->default_value("4")
+      )("t,threads", "Number of threads to use. Default is auto-detected from the CPU.", cxxopts::value<size_t>()->default_value(std::to_string(std::thread::hardware_concurrency())));
+
+  auto args = options.parse(argc, argv);
+
+  auto image_width = args["width"].as<size_t>();
+  auto image_height = args["height"].as<size_t>();
+  auto rays_per_pixel = args["rays"].as<size_t>();
+  auto max_bounces = args["bounce"].as<size_t>();
+  auto n_threads = args["threads"].as<size_t>();
+
+  std::clog << std::format(
+      "Rendering a {}x{}px image with {} rays/px and {} max bounces.\n",
+      image_width,
+      image_height,
+      rays_per_pixel,
+      max_bounces
+  );
+  std::clog << std::format("Using {} threads.\n", n_threads);
+
+  Camera cam(
+      (double)image_width, (double)image_height, rays_per_pixel, max_bounces
+  );
+  auto world = build_world();
+
+  cam.render(world, n_threads);
 }
