@@ -190,6 +190,8 @@ public:
     std::vector<std::future<void>> futures;
     futures.reserve(total_threads);
 
+    auto start_time = std::chrono::steady_clock::now();
+
     // Spawn threads
     for (size_t thread_idx = 0; thread_idx < total_threads; ++thread_idx) {
       size_t start_row = thread_idx * rows_per_thread;
@@ -220,10 +222,13 @@ public:
       size_t bar_width = 50; // Width of the progress bar in characters
       size_t pos = (progress * bar_width) / 100;
 
+      std::chrono::duration<double> elapsed =
+          std::chrono::steady_clock::now() - start_time;
+
       std::string bar =
           "[" + std::string(pos, '=') + std::string(bar_width - pos, ' ') + "]";
-      std::clog << "\r" << "\x1B[2K" << bar << " " << progress << "%"
-                << std::flush;
+      std::clog << "\r" << "\x1B[2K" << bar << " " << progress << "% "
+                << elapsed.count() << " seconds" << std::flush;
     } while (!std::ranges::empty(
         futures | std::views::filter([](const auto &future) {
           switch (future.wait_for(std::chrono::milliseconds(0))) {
