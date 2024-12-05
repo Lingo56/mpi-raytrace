@@ -9,6 +9,7 @@
 #include <stop_token>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "blaze/math/expressions/DVecMapExpr.h"
@@ -18,100 +19,9 @@
 #include "hittable.h"
 #include "interval.h"
 #include "ray.h"
-#include "utility.h"
 #include "vec.h"
 
-class camera {
-public:
-  camera(
-      double image_width, double image_height, size_t samples_per_pixel,
-      size_t max_bounces
-  )
-      : aspect_ratio(image_width / image_height),
-        rays_per_pixel(samples_per_pixel), max_bounces(max_bounces) {
-    img_dims = max(
-        Vec2<size_t>{
-            (size_t)(image_height), (size_t)(image_height / aspect_ratio)
-        },
-        1U
-    );
-
-    initialize();
-  }
-
-  void render_chunk(
-      const Hittable &world, size_t start_row, size_t end_row, size_t width,
-      std::vector<std::vector<Color>> &image
-  ) {
-    for (size_t current_height = start_row; current_height < end_row;
-         ++current_height) {
-      for (size_t current_width = 0; current_width < width; ++current_width) {
-        Color pixel_color{0, 0, 0};
-        for (size_t sample = 0; sample < rays_per_pixel; ++sample) {
-          Ray ray = get_ray(current_width, current_height);
-          pixel_color +=
-              ray_color(ray, narrow_checked<long>(max_bounces), world);
-        }
-        // Store the result
-        image[current_height][current_width] =
-            Color(pixel_color * pixel_samples_scale);
-      }
-
-      // Update progress after finishing a row
-      ++rows_completed;
-      size_t progress =
-          rows_completed.load(std::memory_order_acq_rel) * 100 / img_dims[1];
-      size_t bar_width = 50; // Width of the progress bar in characters
-      size_t pos = (progress * bar_width) / 100;
-
-      std::string bar =
-          "[" + std::string(pos, '=') + std::string(bar_width - pos, ' ') + "]";
-      std::clog << "\r" << bar << " " << progress << "% " << std::flush;
-    }
-  }
-
-  void render(const Hittable &world, size_t thread_count) { // -- Render --
-    const size_t width = img_dims[0];
-    const size_t height = img_dims[1];
-    std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
-
-    size_t rows_per_thread = height / thread_count;
-    std::vector<std::jthread> pool;
-    pool.reserve(thread_count);
-
-    for (size_t thread = 0; thread < thread_count; ++thread) {
-      size_t start_row = thread * rows_per_thread;
-      size_t end_row =
-          (thread == thread_count - 1) ? height : start_row + rows_per_thread;
-
-      pool.emplace_back(
-          [&]<typename... Args>(std::stop_token, Args &&...args) {
-            this->render_chunk(std::forward<Args>(args)...);
-          },
-          std::ref(world),
-          start_row,
-          end_row,
-          width,
-          std::ref(image)
-      );
-    }
-
-    for (auto &thread : pool) {
-      thread.join();
-    }
-
-    // Output the image after all threads finish
-    std::cout << "P3\n" << width << ' ' << height << "\n255\n";
-    for (const auto &row : image) {
-      for (const auto &pixel : row) {
-        write_color(std::cout, pixel);
-      }
-    }
-
-    std::clog << "\rDone.                 \n";
-  }
-
-private:
+class Camera {
   std::atomic<size_t> rows_completed = 0; // Counter for current render progress
   double aspect_ratio;                    // Ratio of image width and height
   Vec2<size_t> img_dims;                  // Rendered image dimensions
@@ -208,6 +118,94 @@ private:
   [[nodiscard]]
   static Color ray_color(const Ray &ray, size_t depth, const Hittable &world) {
     return ray_color_helper(ray, depth, world, 1.0);
+  }
+
+public:
+  Camera(
+      double image_width, double image_height, size_t samples_per_pixel,
+      size_t max_bounces
+  )
+      : aspect_ratio(image_width / image_height),
+        rays_per_pixel(samples_per_pixel), max_bounces(max_bounces) {
+    img_dims = max(
+        Vec2<size_t>{
+            (size_t)(image_height), (size_t)(image_height / aspect_ratio)
+        },
+        1U
+    );
+
+    initialize();
+  }
+
+  void render_chunk(
+      const Hittable &world, size_t start_row, size_t end_row, size_t width,
+      std::vector<std::vector<Color>> &image
+  ) {
+    for (size_t current_height = start_row; current_height < end_row;
+         ++current_height) {
+      for (size_t current_width = 0; current_width < width; ++current_width) {
+        Color pixel_color{0, 0, 0};
+        for (size_t sample = 0; sample < rays_per_pixel; ++sample) {
+          Ray ray = get_ray(current_width, current_height);
+          pixel_color += ray_color(ray, max_bounces, world);
+        }
+        // Store the result
+        image[current_height][current_width] =
+            Color(pixel_color * pixel_samples_scale);
+      }
+
+      // Update progress after finishing a row
+      ++rows_completed;
+      size_t progress =
+          rows_completed.load(std::memory_order_acq_rel) * 100 / img_dims[1];
+      size_t bar_width = 50; // Width of the progress bar in characters
+      size_t pos = (progress * bar_width) / 100;
+
+      std::string bar =
+          "[" + std::string(pos, '=') + std::string(bar_width - pos, ' ') + "]";
+      std::clog << "\r" << bar << " " << progress << "% " << std::flush;
+    }
+  }
+
+  void render(const Hittable &world, size_t thread_count) { // -- Render --
+    const size_t width = img_dims[0];
+    const size_t height = img_dims[1];
+    std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
+
+    size_t rows_per_thread = height / thread_count;
+    std::vector<std::jthread> pool;
+    pool.reserve(thread_count);
+
+    for (size_t thread = 0; thread < thread_count; ++thread) {
+      size_t start_row = thread * rows_per_thread;
+      size_t end_row =
+          (thread == thread_count - 1) ? height : start_row + rows_per_thread;
+
+      pool.emplace_back(
+          [&]<typename... Args>(std::stop_token, Args &&...args) {
+            this->render_chunk(std::forward<Args>(args)...);
+          },
+          std::ref(world),
+          start_row,
+          end_row,
+          width,
+          std::ref(image)
+      );
+    }
+
+    for (auto &thread : pool) {
+      thread.join();
+    }
+
+    // Output the image after all threads finish
+    std::cout << "P3\n" << width << ' ' << height << "\n255\n";
+    for (const auto &row : image) {
+      for (const auto &pixel : row) {
+        write_color(std::cout, pixel);
+      }
+    }
+
+    std::clog << "\rDone.                 \n";
   }
 };
 

@@ -43,7 +43,7 @@ int main() {
 
   world.add(Sphere{Point3{0, -102.5, -1}, 100});
 
-  camera cam(image_width, image_height, rays_per_pixel, max_bounces);
+  Camera cam(image_width, image_height, rays_per_pixel, max_bounces);
 
   cam.render(world, thread_count);
 }
