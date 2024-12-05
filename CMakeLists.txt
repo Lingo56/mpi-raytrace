@@ -54,8 +54,8 @@ target_compile_features(mpi-raytrace PUBLIC cxx_std_23)
 target_link_libraries(mpi-raytrace PUBLIC dependencies)
 
 if(NOT NDEBUG)
-  target_compile_options(mpi-raytrace PRIVATE -fsanitize=undefined)
-  target_link_options(mpi-raytrace PRIVATE -fsanitize=undefined)
+  target_compile_options(mpi-raytrace PRIVATE -fsanitize=address)
+  target_link_options(mpi-raytrace PRIVATE -fsanitize=address)
   set_target_properties(mpi-raytrace PROPERTIES LINKER_TYPE LLD)
 endif()
 

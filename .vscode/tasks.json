@@ -7,13 +7,10 @@
       "label": "Run with stdout redirect",
       "type": "shell",
       "command": "${command:cmake.launchTargetPath}",
-      "args": [
-        ">",
-        "image.ppm"
-      ],
+      "args": [">", "image.ppm"],
       "problemMatcher": [],
       "presentation": {
-        "close": true
+        "close": false
       }
     }
   ]
