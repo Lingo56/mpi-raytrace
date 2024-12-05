@@ -121,7 +121,7 @@ class Camera {
       );
     }
 
-    Vec3 unit_direction = Vec3(normalize(ray.direction()));
+    Vec3 unit_direction = Vec3(blaze::normalize(ray.direction()));
     auto coeff_a = 0.5 * (unit_direction.y() + 1.0);
     return Color{
         (1.0 - coeff_a) * Color{1.0, 1.0, 1.0} + coeff_a * Color{0.5, 0.7, 1.0}
@@ -140,7 +140,7 @@ public:
   )
       : aspect_ratio(image_width / image_height),
         rays_per_pixel(samples_per_pixel), max_bounces(max_bounces) {
-    img_dims = max(
+    img_dims = blaze::max(
         Vec2<size_t>{
             (size_t)(image_height), (size_t)(image_height / aspect_ratio)
         },
