@@ -26,7 +26,7 @@ struct Vec3 : public blaze::StaticVector<double, 3UL> {
     return Vec3{random_vec<3, double>(min, max)};
   }
 
-  static auto random_unit() { return blaze::normalize(random()); }
+  static auto random_unit() { return Vec3{blaze::normalize(random())}; }
 
   static auto random_on_hemisphere(const Vec3 &normal) {
     auto on_unit_sphere = random_unit();

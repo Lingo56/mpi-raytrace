@@ -128,7 +128,7 @@ private:
     auto focal_length = 1.0;
     auto viewport_h = 2.0; // 2 is arbitrary, can be any number
 
-    pixel_samples_scale = 1.0 / rays_per_pixel;
+    pixel_samples_scale = 1.0 / (double)rays_per_pixel;
 
     Vec2<double> viewport_dims{
         viewport_h * (double(img_dims[0]) / double(img_dims[1])), viewport_h
@@ -142,12 +142,14 @@ private:
     auto viewport_v = Vec3{0, -viewport_dims[1], 0};
 
     // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    pixel_delta_u = Vec3(viewport_u / (double)img_dims[0]);
-    pixel_delta_v = Vec3(viewport_v / (double)img_dims[1]);
+    pixel_delta_u = Vec3{viewport_u / (double)img_dims[0]};
+    pixel_delta_v = Vec3{viewport_v / (double)img_dims[1]};
 
     // Calculate the location of the upper left pixel.
-    auto viewport_upper_left = camera_center - Vec3{0, 0, focal_length} -
-                               viewport_u / 2 - viewport_v / 2;
+    auto viewport_upper_left = Vec3{
+        camera_center - Vec3{0, 0, focal_length} - viewport_u / 2 -
+        viewport_v / 2
+    };
 
     pixel00_loc =
         Point3(viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v));
@@ -173,7 +175,7 @@ private:
                         ((current_height + offset.y()) * pixel_delta_v);
 
     auto ray_origin = camera_center;
-    auto ray_direction = pixel_sample - ray_origin;
+    auto ray_direction = Vec3{pixel_sample - ray_origin};
 
     return {ray_origin, Vec3(ray_direction)};
   }
