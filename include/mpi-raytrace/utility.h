@@ -6,9 +6,11 @@
 #include <concepts>
 #include <cstdlib>
 #include <format>
+#include <limits>
 #include <numbers>
 
 #include <quasirand.hpp>
+#include <random>
 #include <stdexcept>
 #include <utility>
 
@@ -25,7 +27,9 @@ constexpr auto random_vec(T min = 0.0, T max = 1.0) {
   assert(min <= max);
   __builtin_assume(min <= max);
 
-  static quasirand::QuasiRandom<D> qrng;
+  std::random_device rng;
+  static std::uniform_real_distribution<double> distribution(0, 1);
+  thread_local quasirand::QuasiRandom<D> qrng(distribution(rng));
 
   auto res = qrng();
   for (auto &val : res)
@@ -34,8 +38,23 @@ constexpr auto random_vec(T min = 0.0, T max = 1.0) {
   return res;
 }
 
+template <typename Value, typename Target>
+concept fits_in = requires {
+  requires std::integral<Value>;
+  requires std::integral<Target>;
+  requires std::totally_ordered_with<Value, Target>;
+
+  requires std::cmp_less_equal(
+      std::numeric_limits<Target>::max(), std::numeric_limits<Value>::max()
+  );
+  requires std::cmp_greater_equal(
+      std::numeric_limits<Target>::min(), std::numeric_limits<Value>::min()
+  );
+};
+
 // Narrows integers with a runtime check.
-template <typename R, typename T>
+template <std::integral R, std::integral T>
+  requires(!fits_in<T, R>)
 [[nodiscard]] constexpr R narrow_checked(T value) {
   if (!std::in_range<R>(value))
     throw std::range_error(std::format(
