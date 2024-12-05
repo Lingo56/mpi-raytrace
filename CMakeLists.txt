@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project(mpi-raytrace CXX)
 
+option(USE_ADDRESS_SANITIZER "Add -fsanitize=address to the project." OFF)
+
 find_package(MPI REQUIRED CXX)
 
 include(cmake/CPM.cmake)
@@ -53,10 +55,9 @@ target_include_directories(mpi-raytrace PUBLIC include/${CMAKE_PROJECT_NAME})
 target_compile_features(mpi-raytrace PUBLIC cxx_std_23)
 target_link_libraries(mpi-raytrace PUBLIC dependencies)
 
-if(NOT NDEBUG)
+if(USE_ADDRESS_SANITIZER)
   target_compile_options(mpi-raytrace PRIVATE -fsanitize=address)
   target_link_options(mpi-raytrace PRIVATE -fsanitize=address)
-  set_target_properties(mpi-raytrace PROPERTIES LINKER_TYPE LLD)
 endif()
 
 add_subdirectory(src)

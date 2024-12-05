@@ -55,7 +55,7 @@ concept fits_in = requires {
 // Narrows integers with a runtime check.
 template <std::integral R, std::integral T>
   requires(!fits_in<T, R>)
-[[nodiscard]] constexpr R narrow_checked(T value) {
+[[nodiscard]] constexpr R try_narrow(T value) {
   if (!std::in_range<R>(value))
     throw std::range_error(std::format(
         "Value '{}' of {} cannot fit into {}.",

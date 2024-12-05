@@ -12,16 +12,17 @@
       "description": "Sets generator, build and install directory",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "environment": {
-        "MACHINE_FLAGS": "-march=native -mtune=native"
+        "FLAGS": "-march=native -mtune=native"
       },
       "cacheVariables": {
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_LINKER_TYPE": "LLD",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_C_FLAGS": "$env{MACHINE_FLAGS}",
-        "CMAKE_CXX_FLAGS": "$env{MACHINE_FLAGS}"
+        "CMAKE_C_FLAGS": "$env{FLAGS}",
+        "CMAKE_CXX_FLAGS": "$env{FLAGS} -DUSE_MPI"
       }
     }
   ]

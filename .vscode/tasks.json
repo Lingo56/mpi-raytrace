@@ -12,6 +12,22 @@
       "presentation": {
         "close": false
       }
+    },
+    {
+      "label": "Run with MPI & stdout redirect",
+      "type": "shell",
+      "command": "mpiexec",
+      "args": [
+        "-n",
+        "1",
+        "${command:cmake.launchTargetPath}",
+        ">",
+        "image.ppm"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "close": false
+      }
     }
   ]
 }

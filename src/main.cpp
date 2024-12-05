@@ -10,7 +10,12 @@
 
 #include <cxxopts.hpp>
 
+#ifdef USE_MPI
+#include "camera-mpi.h"
+#else
 #include "camera.h"
+#endif
+
 #include "hittable_list.h"
 #include "sphere.h"
 #include "vec.h"
@@ -68,12 +73,18 @@ int main(int argc, char **argv) {
       rays_per_pixel,
       max_bounces
   );
+#ifndef USE_MPI
   std::clog << std::format("Using {} threads.\n", n_threads);
+#endif
 
   Camera cam(
       (double)image_width, (double)image_height, rays_per_pixel, max_bounces
   );
   auto world = build_world();
 
+#ifdef USE_MPI
+  cam.render(world);
+#else
   cam.render(world, n_threads);
+#endif
 }
