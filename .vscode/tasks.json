@@ -19,7 +19,7 @@
       "command": "mpiexec",
       "args": [
         "-n",
-        "1",
+        "8",
         "${command:cmake.launchTargetPath}",
         ">",
         "image.ppm"

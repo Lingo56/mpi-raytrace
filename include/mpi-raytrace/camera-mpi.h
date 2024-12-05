@@ -132,7 +132,7 @@ public:
   }
 
   void render_chunk(
-      const Hittable &world, Interval<size_t> work_interval,
+      const Hittable &world, Interval<size_t> work_interval, size_t width,
       std::vector<std::vector<Color>> &image
   ) {
     auto start_row = work_interval.begin();
@@ -141,8 +141,7 @@ public:
 
     for (size_t local_row = 0; local_row < local_height; ++local_row) {
       size_t current_height = start_row + local_row;
-      for (size_t current_width = 0; current_width < work_interval.size();
-           ++current_width) {
+      for (size_t current_width = 0; current_width < width; ++current_width) {
         Color pixel_color{0, 0, 0};
         for (size_t sample = 0; sample < rays_per_pixel; ++sample) {
           Ray ray = get_ray(current_width, current_height);
@@ -188,7 +187,7 @@ public:
     );
 
     // Each process renders its chunk
-    this->render_chunk(world, Interval{start_row, end_row}, local_image);
+    this->render_chunk(world, Interval{start_row, end_row}, width, local_image);
 
     // Each process flattens local_image into send_buffer
     size_t num_elements = local_height * width * 3;
@@ -208,34 +207,38 @@ public:
     std::vector<int> recvcounts(size);
     std::vector<int> displs(size);
 
+    size_t total_elements = height * width * 3;
+    std::vector<double> recv_buffer;
+
     if (rank == 0) {
-      size_t total_elements = height * width * 3;
-      std::vector<double> recv_buffer(total_elements);
+      recv_buffer.resize(total_elements);
+    }
 
-      // Compute recvcounts and displs
-      size_t offset = 0;
-      for (size_t i = 0; i < size; ++i) {
-        size_t proc_rows =
-            (i < remainder_rows) ? (rows_per_process + 1) : rows_per_process;
-        size_t proc_elements = proc_rows * width * 3;
-        recvcounts[i] = static_cast<int>(proc_elements);
-        displs[i] = static_cast<int>(offset);
-        offset += proc_elements;
-      }
+    // Compute recvcounts and displs on all ranks
+    size_t offset = 0;
+    for (size_t i = 0; i < size; ++i) {
+      size_t proc_rows =
+          (i < remainder_rows) ? (rows_per_process + 1) : rows_per_process;
+      size_t proc_elements = proc_rows * width * 3;
+      recvcounts[i] = static_cast<int>(proc_elements);
+      displs[i] = static_cast<int>(offset);
+      offset += proc_elements;
+    }
 
-      // Now, gather data from all processes
-      MPI_Gatherv(
-          send_buffer.data(),
-          static_cast<int>(num_elements),
-          MPI_DOUBLE,
-          recv_buffer.data(),
-          recvcounts.data(),
-          displs.data(),
-          MPI_DOUBLE,
-          0,
-          MPI_COMM_WORLD
-      );
+    // Now, gather data from all processes
+    MPI_Gatherv(
+        send_buffer.data(),
+        static_cast<int>(num_elements),
+        MPI_DOUBLE,
+        recv_buffer.data(),
+        recvcounts.data(),
+        displs.data(),
+        MPI_DOUBLE,
+        0,
+        MPI_COMM_WORLD
+    );
 
+    if (rank == 0) {
       // After gathering, reconstruct the image
       std::vector<std::vector<Color>> image(height, std::vector<Color>(width));
 
@@ -258,19 +261,6 @@ public:
       }
 
       std::clog << "Done.\n";
-    } else {
-      // Other ranks send their data
-      MPI_Gatherv(
-          send_buffer.data(),
-          static_cast<int>(num_elements),
-          MPI_DOUBLE,
-          nullptr,
-          nullptr,
-          nullptr,
-          MPI_DOUBLE,
-          0,
-          MPI_COMM_WORLD
-      );
     }
 
     MPI_Finalize();
