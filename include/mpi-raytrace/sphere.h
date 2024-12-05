@@ -2,6 +2,7 @@
 #define SPHERE_H
 
 #include <algorithm>
+#include <cmath>
 #include <concepts>
 #include <optional>
 #include <utility>
@@ -13,7 +14,6 @@
 #include "interval.h"
 #include "ray.h"
 #include "vec.h"
-#include <cmath>
 
 class Sphere : public Hittable {
   Point3 sphere_center;
