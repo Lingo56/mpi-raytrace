@@ -16,8 +16,8 @@ Optional arguments usable with `build/mpi-raytrace`
 - -r<UINT>: rays fired out of each pixel (default = 32)
 - -t<UINT>: number of threads executing the algorithm (default = std::thread::hardware_concurrency())
 
-Example
-`build/mpi-raytrace -w1280 -h720 -r2 -t4 > image.ppm`
+Example:
+```build/mpi-raytrace -w1280 -h720 -r2 -t4 > image.ppm```
 
 ## Building and Running MPI Raytracing
 
@@ -33,4 +33,4 @@ Clone and then navigate to `./mpi-raytrace`
 - -r<UINT>: rays fired out of each pixel (default = 32)
 - -n<UINT> = number of processes executing the algorithm (defualt = 1)
 
-```mpiexec -nD build/mpi-raytrace -wA -hB -rC```
+Example: ```mpiexec -nD build/mpi-raytrace -wA -hB -rC```
