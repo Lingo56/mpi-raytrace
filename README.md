@@ -28,6 +28,8 @@ Clone and then navigate to `./mpi-raytrace`
 
 ```mpiexec build/mpi-raytrace > image.ppm```
 
+Optional arguments usable with `mpiexec build/mpi-raytrace`
+
 - -w<UINT>: width of final image (default = 1920)
 - -h<UINT>: height of final image (default = 1080)
 - -r<UINT>: rays fired out of each pixel (default = 32)
